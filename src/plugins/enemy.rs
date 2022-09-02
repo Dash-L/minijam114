@@ -5,6 +5,7 @@ use rand::{distributions::Standard, prelude::*};
 
 use crate::{
     components::{Enemy, Player},
+    resources::Sprites,
     GameState,
 };
 
@@ -50,6 +51,7 @@ fn spawn_enemies(
     time: Res<Time>,
     mut spawn_timer: ResMut<SpawnTimer>,
     windows: Res<Windows>,
+    sprites: Res<Sprites>,
 ) {
     spawn_timer.tick(time.delta());
 
@@ -69,17 +71,17 @@ fn spawn_enemies(
         commands
             .spawn_bundle(SpriteBundle {
                 sprite: Sprite {
-                    color: Color::RED,
-                    custom_size: Some(Vec2::new(16.0, 32.0)),
+                    custom_size: Some(Vec2::new(60.0, 84.0)),
                     ..default()
                 },
+                texture: sprites.enemy.clone(),
                 transform: Transform::from_translation(translation),
                 ..default()
             })
             .insert(Enemy)
             .insert(RigidBody::Dynamic)
             .insert(Velocity::default())
-            .insert(Collider::cuboid(8.0, 16.0))
+            .insert(Collider::cuboid(30.0, 42.0))
             .insert(LockedAxes::ROTATION_LOCKED)
             .insert(ActiveEvents::COLLISION_EVENTS);
     }
