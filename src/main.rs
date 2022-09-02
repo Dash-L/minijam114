@@ -3,6 +3,9 @@ use bevy_asset_loader::prelude::*;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
+mod plugins;
+use plugins::*;
+
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum GameState {
     Loading,
@@ -22,5 +25,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierDebugRenderPlugin::default())
+        // Our plugins
+        .add_plugin(PlayerPlugin)
+        .add_plugin(EnemyPlugin)
         .run();
 }
