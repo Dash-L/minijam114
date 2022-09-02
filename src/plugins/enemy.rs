@@ -62,10 +62,26 @@ fn spawn_enemies(
         let enemy_pos: EnemySpawnPos = rng.gen();
 
         let translation = match enemy_pos {
-            EnemySpawnPos::Up => Vec3::new(0., -window.height() / 2., 1.),
-            EnemySpawnPos::Down => Vec3::new(0., window.height() / 2., 1.),
-            EnemySpawnPos::Left => Vec3::new(-window.width() / 2., 0., 1.),
-            EnemySpawnPos::Right => Vec3::new(window.width() / 2., 0., 1.),
+            EnemySpawnPos::Up => Vec3::new(
+                rng.gen_range((-window.width() / 2.0)..(window.width() / 2.0)),
+                -window.height() / 2.,
+                1.,
+            ),
+            EnemySpawnPos::Down => Vec3::new(
+                rng.gen_range((-window.width() / 2.0)..(window.width() / 2.0)),
+                window.height() / 2.,
+                1.,
+            ),
+            EnemySpawnPos::Left => Vec3::new(
+                -window.width() / 2.,
+                rng.gen_range((-window.height() / 2.0)..(window.height() / 2.0)),
+                1.,
+            ),
+            EnemySpawnPos::Right => Vec3::new(
+                window.width() / 2.,
+                rng.gen_range((-window.height() / 2.0)..(window.height() / 2.0)),
+                1.,
+            ),
         };
 
         commands
