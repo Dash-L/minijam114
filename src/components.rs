@@ -7,6 +7,9 @@ pub struct Player;
 pub struct Enemy;
 
 #[derive(Component)]
+pub struct Barrel;
+
+#[derive(Component)]
 pub struct Bullet;
 
 #[derive(Component)]

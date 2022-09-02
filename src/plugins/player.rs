@@ -5,7 +5,7 @@ use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    components::{AnimationTimer, Bullet, Enemy, FireRate, LastShotTime, Player},
+    components::{AnimationTimer, Barrel, Bullet, Enemy, FireRate, LastShotTime, Player},
     resources::{MousePosition, Sprites},
     GameState,
 };
@@ -33,22 +33,27 @@ impl Plugin for PlayerPlugin {
 
 fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
     commands
-        .spawn_bundle(SpriteSheetBundle {
-            sprite: TextureAtlasSprite {
-                custom_size: Some(Vec2::new(64.0, 64.0)),
-                ..default()
-            },
-            texture_atlas: sprites.player.clone(),
+        .spawn_bundle(SpriteBundle {
+            transform: Transform::from_scale(Vec3::splat(4.)),
+            texture: sprites.base.clone(),
             ..default()
         })
         .insert(FireRate(0.25))
         .insert(LastShotTime::default())
-        .insert(AnimationTimer(Timer::from_seconds(0.25, true)))
         .insert(Player)
         .insert(RigidBody::Fixed)
-        .insert(Collider::cuboid(32.0, 32.0))
+        .insert(Collider::cuboid(7., 7.))
         .insert(LockedAxes::TRANSLATION_LOCKED)
-        .insert(ActiveEvents::COLLISION_EVENTS);
+        .insert(ActiveEvents::COLLISION_EVENTS)
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(SpriteSheetBundle {
+                    texture_atlas: sprites.barrel.clone(),
+                    ..default()
+                })
+                .insert(Barrel)
+                .insert(AnimationTimer(Timer::from_seconds(0.25, true)));
+        });
 }
 
 fn shoot(
@@ -56,17 +61,11 @@ fn shoot(
     time: Res<Time>,
     mouse_buttons: Res<Input<MouseButton>>,
     mouse_pos: Res<MousePosition>,
-    mut player: Query<
-        (
-            &Transform,
-            &FireRate,
-            &mut LastShotTime,
-            &mut AnimationTimer,
-        ),
-        With<Player>,
-    >,
+    mut player: Query<(&Transform, &FireRate, &mut LastShotTime), With<Player>>,
+    mut barrel: Query<&mut AnimationTimer, With<Barrel>>,
 ) {
-    let (transform, fire_rate, mut last_shot_time, mut timer) = player.single_mut();
+    let (transform, fire_rate, mut last_shot_time) = player.single_mut();
+    let mut timer = barrel.single_mut();
 
     last_shot_time.tick(time.delta());
 
@@ -105,9 +104,11 @@ fn shoot(
 }
 
 fn update_animation_timer(
-    mut player: Query<(&mut AnimationTimer, &FireRate), (With<Player>, Changed<FireRate>)>,
+    player: Query<&FireRate, (With<Player>, Changed<FireRate>)>,
+    mut barrel: Query<&mut AnimationTimer, With<Barrel>>,
 ) {
-    if let Ok((mut anim_timer, fire_rate)) = player.get_single_mut() {
+    if let Ok(fire_rate) = player.get_single() {
+        let mut anim_timer = barrel.single_mut();
         anim_timer.set_duration(Duration::from_secs_f32(fire_rate.0));
     }
 }
@@ -115,16 +116,16 @@ fn update_animation_timer(
 fn animate_player(
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlas>>,
-    mut player: Query<
+    mut barrel: Query<
         (
             &mut AnimationTimer,
             &Handle<TextureAtlas>,
             &mut TextureAtlasSprite,
         ),
-        With<Player>,
+        With<Barrel>,
     >,
 ) {
-    let (mut anim_timer, atlas_handle, mut sprite) = player.single_mut();
+    let (mut anim_timer, atlas_handle, mut sprite) = barrel.single_mut();
 
     if anim_timer.paused() {
         anim_timer.set_elapsed(Duration::ZERO);
@@ -135,19 +136,16 @@ fn animate_player(
         if anim_timer.just_finished() {
             let texture_atlas = texture_atlases.get(atlas_handle).unwrap();
 
-            sprite.index += 1;
-            if sprite.index >= texture_atlas.len() {
-                sprite.index = 1;
-            }
+            sprite.index = (sprite.index + 1) % texture_atlas.len();
         }
     }
 }
 
 fn rotate_player(
     mouse_pos: Res<MousePosition>,
-    mut player: Query<(&mut Transform, &mut TextureAtlasSprite), With<Player>>,
+    mut barrel: Query<(&mut Transform, &mut TextureAtlasSprite), With<Barrel>>,
 ) {
-    let (mut player_transform, mut sprite) = player.single_mut();
+    let (mut player_transform, mut sprite) = barrel.single_mut();
 
     // normalized vector pointing from player to mouse
     let dir = (mouse_pos.0 - player_transform.translation.truncate()).normalize();

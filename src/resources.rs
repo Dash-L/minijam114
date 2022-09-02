@@ -9,9 +9,11 @@ pub struct Fonts {
 
 #[derive(AssetCollection)]
 pub struct Sprites {
-    #[asset(texture_atlas(tile_size_x = 32., tile_size_y = 32., columns = 3, rows = 1))]
-    #[asset(path = "sprites/player-sheet.png")]
-    pub player: Handle<TextureAtlas>,
+    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 2, rows = 1))]
+    #[asset(path = "sprites/barrel-sheet.png")]
+    pub barrel: Handle<TextureAtlas>,
+    #[asset(path = "sprites/player-base.png")]
+    pub base: Handle<Image>,
     #[asset(path = "sprites/zombie.png")]
     pub enemy: Handle<Image>,
 }
