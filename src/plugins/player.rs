@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
-use crate::{components::Player, GameState};
+use crate::{components::Player, resources::Sprites, GameState};
 
 pub struct PlayerPlugin;
 
@@ -18,14 +18,10 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn spawn_player(mut commands: Commands) {
+fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
     commands
-        .spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::GREEN,
-                custom_size: Some(Vec2::new(64.0, 64.0)),
-                ..default()
-            },
+        .spawn_bundle(SpriteSheetBundle {
+            texture_atlas: sprites.player.clone(),
             ..default()
         })
         .insert(Player)

@@ -38,7 +38,8 @@ fn main() {
         .add_loading_state(
             LoadingState::new(GameState::Loading)
                 .continue_to_state(GameState::Menu)
-                .with_collection::<Fonts>(),
+                .with_collection::<Fonts>()
+                .with_collection::<Sprites>(),
         )
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
