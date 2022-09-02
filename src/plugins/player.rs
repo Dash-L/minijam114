@@ -29,6 +29,7 @@ fn spawn_player(mut commands: Commands) {
             ..default()
         })
         .insert(Player)
+        .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(32.0, 32.0))
         .insert(LockedAxes::TRANSLATION_LOCKED)
         .insert(ActiveEvents::COLLISION_EVENTS);
