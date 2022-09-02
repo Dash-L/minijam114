@@ -72,6 +72,10 @@ fn shoot(
 
     if mouse_buttons.pressed(MouseButton::Left) {
         timer.unpause();
+        if mouse_buttons.just_pressed(MouseButton::Left) {
+            let timer_duration = timer.duration();
+            timer.set_elapsed(timer_duration);
+        }
 
         if last_shot_time.elapsed().as_secs_f32() > fire_rate.0 {
             last_shot_time.reset();
