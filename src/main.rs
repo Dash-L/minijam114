@@ -28,5 +28,10 @@ fn main() {
         // Our plugins
         .add_plugin(PlayerPlugin)
         .add_plugin(EnemyPlugin)
+        .add_enter_system(GameState::Menu, setup)
         .run();
+}
+
+fn setup(mut commands: Commands) {
+    commands.spawn_bundle(Camera2dBundle::default());
 }
