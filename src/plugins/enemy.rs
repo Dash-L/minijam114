@@ -88,14 +88,16 @@ fn spawn_enemies(
 }
 
 fn move_to_player(
-    mut enemies: Query<(&Transform, &mut Velocity), With<Enemy>>,
+    mut enemies: Query<(&mut Transform, &mut Velocity), With<Enemy>>,
     player: Query<&Transform, (With<Player>, Without<Enemy>)>,
 ) {
     let player_transform = player.single();
 
-    for (transform, mut velocity) in &mut enemies {
+    for (mut transform, mut velocity) in &mut enemies {
         let dir = (player_transform.translation.truncate() - transform.translation.truncate())
             .normalize();
+
+        transform.rotation = Quat::from_rotation_z(Vec2::X.angle_between(dir));
 
         velocity.linvel = dir * 500.0;
     }
