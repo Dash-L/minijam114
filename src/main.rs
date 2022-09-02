@@ -6,6 +6,8 @@ use iyes_loopless::prelude::*;
 mod plugins;
 use plugins::*;
 
+mod components;
+
 mod resources;
 use resources::*;
 
