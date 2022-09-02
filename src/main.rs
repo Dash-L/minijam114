@@ -1,5 +1,6 @@
-use bevy::{app::AppExit, prelude::*};
+use bevy::{app::AppExit, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
+use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
@@ -29,6 +30,7 @@ struct MainMenu;
 
 fn main() {
     App::new()
+        .insert_resource(ImageSettings::default_nearest())
         .insert_resource(WindowDescriptor {
             title: "Minijam 114".to_string(),
             resizable: false,
@@ -42,6 +44,7 @@ fn main() {
                 .with_collection::<Sprites>(),
         )
         .add_plugins(DefaultPlugins)
+        .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierDebugRenderPlugin::default())
         // Our plugins

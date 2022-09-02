@@ -13,3 +13,6 @@ pub struct Sprites {
     #[asset(path = "sprites/player-sheet.png")]
     pub player: Handle<TextureAtlas>,
 }
+
+#[derive(Default)]
+pub struct MousePosition(pub Vec2);
