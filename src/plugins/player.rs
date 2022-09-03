@@ -3,9 +3,13 @@ use std::{f32::consts::PI, time::Duration};
 use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
+use rand::{thread_rng, Rng};
 
 use crate::{
-    components::{AnimationTimer, Barrel, Bullet, Damage, Enemy, Health, Pierce, Player, Ready},
+    components::{
+        AnimationTimer, Barrel, Bullet, Damage, Enemy, Health, HitEnemies, Knockback, Pierce,
+        Player, Ready, Spread,
+    },
     resources::{MousePosition, Sprites},
     GameState,
 };
@@ -40,6 +44,8 @@ fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
         })
         .insert(Player)
         .insert(Health::new(200.0))
+        .insert(Knockback(0.0))
+        .insert(Spread(PI / 8.0))
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(7., 7.))
         .insert(LockedAxes::TRANSLATION_LOCKED)
@@ -60,10 +66,10 @@ fn shoot(
     mut commands: Commands,
     mouse_buttons: Res<Input<MouseButton>>,
     mouse_pos: Res<MousePosition>,
-    mut player: Query<&Transform, With<Player>>,
+    mut player: Query<(&Transform, &Knockback, &Spread), With<Player>>,
     mut barrel: Query<(&mut TextureAtlasSprite, &mut AnimationTimer, &mut Ready), With<Barrel>>,
 ) {
-    let transform = player.single_mut();
+    let (transform, knockback, spread) = player.single_mut();
     let (mut sprite, mut timer, mut ready) = barrel.single_mut();
 
     if mouse_buttons.just_pressed(MouseButton::Left) && timer.paused() {
@@ -72,8 +78,12 @@ fn shoot(
         sprite.index = 1;
     }
 
+    let mut rng = thread_rng();
+
     if timer.just_finished() && !timer.paused() && sprite.index == 0 {
-        let dir = (mouse_pos.0 - transform.translation.truncate()).normalize();
+        let dir = Vec2::from_angle(rng.gen_range(-spread.0..=spread.0))
+            .rotate(mouse_pos.0 - transform.translation.truncate())
+            .normalize();
 
         commands
             .spawn_bundle(SpriteBundle {
@@ -89,6 +99,8 @@ fn shoot(
             .insert(Bullet)
             .insert(Pierce(3))
             .insert(Damage(50.0))
+            .insert(knockback.clone())
+            .insert(HitEnemies::default())
             .insert(RigidBody::Dynamic)
             .insert(Ccd::enabled())
             .insert(Velocity::linear(dir * 1500.0))
@@ -161,8 +173,8 @@ fn rotate_player(
 
 fn collide_bullets(
     mut commands: Commands,
-    mut bullets: Query<(Entity, &mut Pierce, &Damage), With<Bullet>>,
-    mut enemies: Query<(Entity, &mut Health), With<Enemy>>,
+    mut bullets: Query<(Entity, &mut HitEnemies, &mut Pierce, &Damage, &Knockback), With<Bullet>>,
+    mut enemies: Query<(Entity, &ExternalForce, &mut Health, &mut ExternalImpulse), With<Enemy>>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
     let mut handled_entities = HashSet::new();
@@ -181,9 +193,14 @@ fn collide_bullets(
                 continue;
             };
 
-            let (_, mut pierce, damage) = bullets.get_mut(bullet_entity).unwrap();
-            if let Ok((enemy_entity, mut health)) = enemies.get_mut(*maybe_enemy) {
+            let (_, mut hit_enemies, mut pierce, damage, knockback) =
+                bullets.get_mut(bullet_entity).unwrap();
+            if let Ok((enemy_entity, force, mut health, mut impulse)) =
+                enemies.get_mut(*maybe_enemy) && !hit_enemies.0.contains(&enemy_entity)
+            {
+                hit_enemies.0.insert(enemy_entity);
                 pierce.0 -= 1;
+                impulse.impulse = force.force.normalize() * -knockback.0;
                 if pierce.0 <= 0 {
                     commands.entity(bullet_entity).despawn_recursive();
                 }

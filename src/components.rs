@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashSet};
 
 #[derive(Component)]
 pub struct Player;
@@ -32,10 +32,19 @@ impl Health {
 }
 
 #[derive(Component)]
+pub struct Spread(pub f32);
+
+#[derive(Component, Default)]
+pub struct HitEnemies(pub HashSet<Entity>);
+
+#[derive(Component)]
 pub struct Pierce(pub i32);
 
 #[derive(Component)]
 pub struct Damage(pub f32);
+
+#[derive(Component, Clone)]
+pub struct Knockback(pub f32);
 
 #[derive(Component)]
 pub struct HasHealthBar;

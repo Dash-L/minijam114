@@ -13,7 +13,7 @@ pub struct Sprites {
     #[asset(path = "sprites/barrel-sheet.png")]
     pub barrel: Handle<TextureAtlas>,
     #[asset(paths("sprites/rocket.png", "sprites/sawblade.png"), collection(typed))]
-    pub bullettype: Vec<Handle<Image>>,
+    pub bullet_type: Vec<Handle<Image>>,
     #[asset(paths("sprites/spread1.png", "sprites/spread2.png"), collection(typed))]
     pub spread: Vec<Handle<Image>>,
     #[asset(paths("sprites/ice.png", "sprites/suc.png"), collection(typed))]

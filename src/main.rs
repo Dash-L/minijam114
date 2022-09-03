@@ -197,11 +197,7 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
         .spawn_bundle(NodeBundle {
             color: UiColor([0.0; 4].into()),
             style: Style {
-                size: Size::new(Val::Auto, Val::Auto),
                 margin: UiRect::all(Val::Auto),
-                align_self: AlignSelf::Center,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
                 flex_direction: FlexDirection::ColumnReverse,
                 ..default()
             },

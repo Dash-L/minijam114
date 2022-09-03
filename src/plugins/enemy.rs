@@ -96,6 +96,10 @@ fn spawn_enemies(
             .insert(Damage(10.0))
             .insert(Health::new(100.0))
             .insert(RigidBody::Dynamic)
+            .insert(ExternalImpulse::default())
+            .insert(ExternalForce::default())
+            .insert(ColliderMassProperties::Density(0.0))
+            .insert(AdditionalMassProperties::Mass(10.0))
             .insert(Velocity::default())
             .insert(Collider::cuboid(5.0, 7.0))
             .insert(LockedAxes::ROTATION_LOCKED)
@@ -104,7 +108,7 @@ fn spawn_enemies(
 }
 
 fn move_to_player(
-    mut enemies: Query<(&mut Transform, &mut Velocity), With<Enemy>>,
+    mut enemies: Query<(&mut Transform, &mut ExternalForce), With<Enemy>>,
     player: Query<&Transform, (With<Player>, Without<Enemy>)>,
 ) {
     let player_transform = player.single();
@@ -115,7 +119,7 @@ fn move_to_player(
 
         transform.rotation = Quat::from_rotation_z(Vec2::X.angle_between(dir));
 
-        velocity.linvel = dir * 500.0;
+        velocity.force = dir * 1000.0;
     }
 }
 
