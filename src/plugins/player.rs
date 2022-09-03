@@ -1,11 +1,11 @@
-use std::time::Duration;
+use std::{f32::consts::PI, time::Duration};
 
 use bevy::{prelude::*, utils::HashSet};
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    components::{AnimationTimer, Barrel, Bullet, Enemy, Player, Ready},
+    components::{AnimationTimer, Barrel, Bullet, Enemy, Health, Player, Ready},
     resources::{MousePosition, Sprites},
     GameState,
 };
@@ -33,11 +33,13 @@ impl Plugin for PlayerPlugin {
 fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
     commands
         .spawn_bundle(SpriteBundle {
-            transform: Transform::from_scale(Vec3::splat(5.)),
+            transform: Transform::from_scale(Vec3::splat(5.))
+                .with_rotation(Quat::from_rotation_z(PI / 2.0)),
             texture: sprites.base.clone(),
             ..default()
         })
         .insert(Player)
+        .insert(Health::new(200.0))
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(7., 7.))
         .insert(LockedAxes::TRANSLATION_LOCKED)
@@ -80,7 +82,8 @@ fn shoot(
                     custom_size: Some(Vec2::new(1.0, 1.0)),
                     ..default()
                 },
-                transform: Transform::from_translation(transform.translation).with_scale(Vec3::splat(24.0)),
+                transform: Transform::from_translation(transform.translation)
+                    .with_scale(Vec3::splat(24.0)),
                 ..default()
             })
             .insert(Bullet)
@@ -141,21 +144,23 @@ fn rotate_player(
     // normalized vector pointing from player to mouse
     let dir = (mouse_pos.0 - player_transform.translation.truncate()).normalize();
 
-    player_transform.rotation = Quat::from_rotation_z(if dir.x < 0.0 {
-        sprite.flip_x = false;
-        sprite.flip_y = false;
-        Vec2::Y.angle_between(dir)
-    } else {
-        sprite.flip_x = true;
-        sprite.flip_y = true;
-        Vec2::NEG_Y.angle_between(dir)
-    });
+    player_transform.rotation = Quat::from_rotation_z(
+        if dir.x < 0.0 {
+            sprite.flip_x = false;
+            sprite.flip_y = false;
+            Vec2::Y.angle_between(dir)
+        } else {
+            sprite.flip_x = true;
+            sprite.flip_y = true;
+            Vec2::NEG_Y.angle_between(dir)
+        } - PI / 2.0,
+    );
 }
 
 fn collide_bullets(
     mut commands: Commands,
     bullets: Query<Entity, With<Bullet>>,
-    enemies: Query<Entity, With<Enemy>>,
+    mut enemies: Query<(Entity, &mut Health), With<Enemy>>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
     let mut handled_entities = HashSet::new();
@@ -174,9 +179,9 @@ fn collide_bullets(
                 continue;
             };
 
-            if let Ok(enemy_entity) = enemies.get(*maybe_enemy) {
+            if let Ok((enemy_entity, mut health)) = enemies.get_mut(*maybe_enemy) {
                 commands.entity(bullet_entity).despawn_recursive();
-                commands.entity(enemy_entity).despawn_recursive();
+                health.0 -= 20.0;
                 handled_entities.insert(bullet_entity);
                 handled_entities.insert(enemy_entity);
             }

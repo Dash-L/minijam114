@@ -2,6 +2,7 @@ use bevy::{app::AppExit, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
+use components::{HasHealthBar, Health, HealthBar};
 use iyes_loopless::prelude::*;
 
 mod plugins;
@@ -61,6 +62,15 @@ fn main() {
         .add_system(update_buttons.run_in_state(GameState::Menu))
         .add_system(play.run_if(button_pressed::<PlayButton>))
         .add_system(exit.run_if(button_pressed::<ExitButton>))
+        // health bar systems (could be a plugin but it's simple enough...)
+        .add_system_set(
+            ConditionSet::new()
+                .run_in_state(GameState::Playing)
+                .with_system(update_healthbars)
+                .with_system(insert_healthbars)
+                .with_system(remove_at_zero)
+                .into(),
+        )
         .run();
 }
 
@@ -91,6 +101,70 @@ fn update_buttons(
             Interaction::Hovered => [0.3; 3].into(),
             Interaction::None => [0.0; 3].into(),
         })
+    }
+}
+
+fn update_healthbars(
+    entities: Query<
+        (&Health, &Children, &Transform),
+        (With<HasHealthBar>, Without<HealthBar>, Changed<Health>),
+    >,
+    mut healthbars: Query<(&HealthBar, &mut Transform)>,
+) {
+    for (health, children, parent_transform) in &entities {
+        for child in children {
+            if let Ok((healthbar, mut transform)) = healthbars.get_mut(*child) && healthbar.0 {
+                transform.scale.y = health.0 / 2.0 / parent_transform.scale.y;
+            }
+        }
+    }
+}
+
+fn insert_healthbars(
+    mut commands: Commands,
+    entities: Query<(Entity, &Health, &Transform), Without<HasHealthBar>>,
+) {
+    for (entity, health, transform) in &entities {
+        commands
+            .entity(entity)
+            .with_children(|parent| {
+                let healthbar_offset_x = Vec3::NEG_X * 0.0;
+
+                parent
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::GREEN,
+                            custom_size: Some(Vec2::new(8.0, 1.0)),
+                            ..default()
+                        },
+                        transform: Transform::from_translation(healthbar_offset_x + Vec3::Z * 11.0)
+                            .with_scale(Vec3::new(1.0, health.0 / 2.0, 1.0) / transform.scale),
+                        ..default()
+                    })
+                    .insert(HealthBar(true));
+
+                parent
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::RED,
+                            custom_size: Some(Vec2::new(8.0, 1.0)),
+                            ..default()
+                        },
+                        transform: Transform::from_translation(healthbar_offset_x + Vec3::Z * 10.0)
+                            .with_scale(Vec3::new(1.0, health.1 / 2.0, 1.0) / transform.scale),
+                        ..default()
+                    })
+                    .insert(HealthBar(false));
+            })
+            .insert(HasHealthBar);
+    }
+}
+
+fn remove_at_zero(mut commands: Commands, entities: Query<(Entity, &Health)>) {
+    for (entity, health) in &entities {
+        if health.0 <= 0.0 {
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }
 

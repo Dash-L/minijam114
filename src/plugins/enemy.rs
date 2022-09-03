@@ -4,7 +4,7 @@ use iyes_loopless::prelude::*;
 use rand::{distributions::Standard, prelude::*};
 
 use crate::{
-    components::{Enemy, Player},
+    components::{Enemy, Health, Player},
     resources::Sprites,
     GameState,
 };
@@ -86,18 +86,15 @@ fn spawn_enemies(
 
         commands
             .spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(60.0, 84.0)),
-                    ..default()
-                },
                 texture: sprites.enemy.clone(),
-                transform: Transform::from_translation(translation),
+                transform: Transform::from_translation(translation).with_scale(Vec3::splat(6.0)),
                 ..default()
             })
             .insert(Enemy)
+            .insert(Health::new(100.0))
             .insert(RigidBody::Dynamic)
             .insert(Velocity::default())
-            .insert(Collider::cuboid(30.0, 42.0))
+            .insert(Collider::cuboid(5.0, 7.0))
             .insert(LockedAxes::ROTATION_LOCKED)
             .insert(ActiveEvents::COLLISION_EVENTS);
     }
