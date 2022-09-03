@@ -22,6 +22,9 @@ pub struct Ready(pub bool);
 #[derive(Component)]
 pub struct Health(pub f32, pub f32);
 
+#[derive(Component, Deref, DerefMut)]
+pub struct BulletPierce(pub i32);
+
 impl Health {
     pub fn new(health: f32) -> Self {
         Self(health, health)
@@ -33,4 +36,3 @@ pub struct HasHealthBar;
 
 #[derive(Component)]
 pub struct HealthBar(pub bool);
-

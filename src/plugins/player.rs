@@ -5,7 +5,7 @@ use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    components::{AnimationTimer, Barrel, Bullet, Enemy, Health, Player, Ready},
+    components::{AnimationTimer, Barrel, Bullet, BulletPierce, Enemy, Health, Player, Ready},
     resources::{MousePosition, Sprites},
     GameState,
 };
@@ -92,7 +92,8 @@ fn shoot(
             .insert(Velocity::linear(dir * 1500.0))
             .insert(Collider::cuboid(0.5, 0.5))
             .insert(Sensor)
-            .insert(ActiveEvents::COLLISION_EVENTS);
+            .insert(ActiveEvents::COLLISION_EVENTS)
+            .insert(BulletPierce(3));
     }
 
     if !mouse_buttons.pressed(MouseButton::Left) && sprite.index == 0 {
@@ -159,7 +160,7 @@ fn rotate_player(
 
 fn collide_bullets(
     mut commands: Commands,
-    bullets: Query<Entity, With<Bullet>>,
+    mut bullets: Query<(Entity, &mut BulletPierce), With<Bullet>>,
     mut enemies: Query<(Entity, &mut Health), With<Enemy>>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
@@ -179,8 +180,12 @@ fn collide_bullets(
                 continue;
             };
 
+            let (_, mut pierce) = bullets.get_mut(bullet_entity).unwrap();
             if let Ok((enemy_entity, mut health)) = enemies.get_mut(*maybe_enemy) {
-                commands.entity(bullet_entity).despawn_recursive();
+                pierce.0 -= 1;
+                if pierce.0 <= 0 {
+                    commands.entity(bullet_entity).despawn_recursive();
+                }
                 health.0 -= 20.0;
                 handled_entities.insert(bullet_entity);
                 handled_entities.insert(enemy_entity);
