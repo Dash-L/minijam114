@@ -5,7 +5,7 @@ use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    components::{AnimationTimer, Barrel, Bullet, Enemy, FireRate, LastShotTime, Player},
+    components::{AnimationTimer, Barrel, Bullet, Enemy, Player, Ready},
     resources::{MousePosition, Sprites},
     GameState,
 };
@@ -22,7 +22,6 @@ impl Plugin for PlayerPlugin {
                     .with_system(update_mouse_position)
                     .with_system(shoot)
                     .with_system(rotate_player)
-                    .with_system(update_animation_timer)
                     .with_system(animate_player)
                     .with_system(collide_bullets)
                     .with_system(despawn_offscreen)
@@ -34,12 +33,10 @@ impl Plugin for PlayerPlugin {
 fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
     commands
         .spawn_bundle(SpriteBundle {
-            transform: Transform::from_scale(Vec3::splat(4.)),
+            transform: Transform::from_scale(Vec3::splat(5.)),
             texture: sprites.base.clone(),
             ..default()
         })
-        .insert(FireRate(0.25))
-        .insert(LastShotTime::default())
         .insert(Player)
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(7., 7.))
@@ -52,64 +49,51 @@ fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
                     ..default()
                 })
                 .insert(Barrel)
-                .insert(AnimationTimer(Timer::from_seconds(0.25, true)));
+                .insert(AnimationTimer(Timer::from_seconds(0.125, true)))
+                .insert(Ready(false));
         });
 }
 
 fn shoot(
     mut commands: Commands,
-    time: Res<Time>,
     mouse_buttons: Res<Input<MouseButton>>,
     mouse_pos: Res<MousePosition>,
-    mut player: Query<(&Transform, &FireRate, &mut LastShotTime), With<Player>>,
-    mut barrel: Query<&mut AnimationTimer, With<Barrel>>,
+    mut player: Query<&Transform, With<Player>>,
+    mut barrel: Query<(&mut TextureAtlasSprite, &mut AnimationTimer, &mut Ready), With<Barrel>>,
 ) {
-    let (transform, fire_rate, mut last_shot_time) = player.single_mut();
-    let mut timer = barrel.single_mut();
+    let transform = player.single_mut();
+    let (mut sprite, mut timer, mut ready) = barrel.single_mut();
 
-    last_shot_time.tick(time.delta());
-
-    if mouse_buttons.pressed(MouseButton::Left) {
+    if mouse_buttons.just_pressed(MouseButton::Left) && timer.paused() {
         timer.unpause();
-        if mouse_buttons.just_pressed(MouseButton::Left) {
-            let timer_duration = timer.duration();
-            timer.set_elapsed(timer_duration);
-        }
-
-        if last_shot_time.elapsed().as_secs_f32() > fire_rate.0 {
-            last_shot_time.reset();
-            let dir = (mouse_pos.0 - transform.translation.truncate()).normalize();
-
-            commands
-                .spawn_bundle(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::YELLOW,
-                        custom_size: Some(Vec2::new(6.0, 6.0)),
-                        ..default()
-                    },
-                    transform: transform.clone(),
-                    ..default()
-                })
-                .insert(Bullet)
-                .insert(RigidBody::Dynamic)
-                .insert(Ccd::enabled())
-                .insert(Velocity::linear(dir * 1500.0))
-                .insert(Collider::cuboid(3.0, 3.0))
-                .insert(Sensor)
-                .insert(ActiveEvents::COLLISION_EVENTS);
-        }
-    } else {
-        timer.pause()
+        ready.0 = false;
+        sprite.index = 1;
     }
-}
 
-fn update_animation_timer(
-    player: Query<&FireRate, (With<Player>, Changed<FireRate>)>,
-    mut barrel: Query<&mut AnimationTimer, With<Barrel>>,
-) {
-    if let Ok(fire_rate) = player.get_single() {
-        let mut anim_timer = barrel.single_mut();
-        anim_timer.set_duration(Duration::from_secs_f32(fire_rate.0));
+    if timer.just_finished() && !timer.paused() && sprite.index == 0 {
+        let dir = (mouse_pos.0 - transform.translation.truncate()).normalize();
+
+        commands
+            .spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::YELLOW,
+                    custom_size: Some(Vec2::new(1.0, 1.0)),
+                    ..default()
+                },
+                transform: Transform::from_translation(transform.translation).with_scale(Vec3::splat(24.0)),
+                ..default()
+            })
+            .insert(Bullet)
+            .insert(RigidBody::Dynamic)
+            .insert(Ccd::enabled())
+            .insert(Velocity::linear(dir * 1500.0))
+            .insert(Collider::cuboid(0.5, 0.5))
+            .insert(Sensor)
+            .insert(ActiveEvents::COLLISION_EVENTS);
+    }
+
+    if !mouse_buttons.pressed(MouseButton::Left) && sprite.index == 0 {
+        ready.0 = true;
     }
 }
 
@@ -121,11 +105,12 @@ fn animate_player(
             &mut AnimationTimer,
             &Handle<TextureAtlas>,
             &mut TextureAtlasSprite,
+            &mut Ready,
         ),
         With<Barrel>,
     >,
 ) {
-    let (mut anim_timer, atlas_handle, mut sprite) = barrel.single_mut();
+    let (mut anim_timer, atlas_handle, mut sprite, mut ready) = barrel.single_mut();
 
     if anim_timer.paused() {
         anim_timer.set_elapsed(Duration::ZERO);
@@ -137,6 +122,12 @@ fn animate_player(
             let texture_atlas = texture_atlases.get(atlas_handle).unwrap();
 
             sprite.index = (sprite.index + 1) % texture_atlas.len();
+
+            if ready.0 && sprite.index == 1 {
+                sprite.index = 0;
+                anim_timer.pause();
+                ready.0 = false;
+            }
         }
     }
 }

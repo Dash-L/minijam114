@@ -1,4 +1,4 @@
-use bevy::{prelude::*, time::Stopwatch};
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct Player;
@@ -12,11 +12,8 @@ pub struct Barrel;
 #[derive(Component)]
 pub struct Bullet;
 
-#[derive(Component)]
-pub struct FireRate(pub f32);
-
-#[derive(Component, Deref, DerefMut, Default)]
-pub struct LastShotTime(pub Stopwatch);
-
 #[derive(Component, Deref, DerefMut)]
 pub struct AnimationTimer(pub Timer);
+
+#[derive(Component)]
+pub struct Ready(pub bool);
