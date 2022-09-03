@@ -17,6 +17,7 @@ pub enum GameState {
     Loading,
     Menu,
     Playing,
+    SkillTree,
 }
 
 #[derive(Component)]
@@ -36,6 +37,10 @@ fn main() {
             resizable: false,
             ..default()
         })
+        .insert_resource(RapierConfiguration {
+            gravity: Vec2::ZERO,
+            ..default()
+        })
         .add_loopless_state(GameState::Loading)
         .add_loading_state(
             LoadingState::new(GameState::Loading)
@@ -50,6 +55,7 @@ fn main() {
         // Our plugins
         .add_plugin(PlayerPlugin)
         .add_plugin(EnemyPlugin)
+        .add_plugin(SkillTreePlugin)
         .add_enter_system(GameState::Menu, setup)
         .add_exit_system(GameState::Menu, despawn_with::<MainMenu>)
         .add_system(update_buttons.run_in_state(GameState::Menu))

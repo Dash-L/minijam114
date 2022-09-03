@@ -15,7 +15,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MousePosition>()
-            .add_enter_system(GameState::Playing, spawn_player)
+            .add_exit_system(GameState::Menu, spawn_player)
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::Playing)
