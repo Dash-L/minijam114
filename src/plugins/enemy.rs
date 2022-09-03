@@ -4,7 +4,7 @@ use iyes_loopless::prelude::*;
 use rand::{distributions::Standard, prelude::*};
 
 use crate::{
-    components::{Enemy, Health, Player},
+    components::{AttackTimer, Damage, Enemy, Health, Player},
     resources::Sprites,
     GameState,
 };
@@ -28,6 +28,7 @@ impl Plugin for EnemyPlugin {
                     .run_in_state(GameState::Playing)
                     .with_system(spawn_enemies)
                     .with_system(move_to_player)
+                    .with_system(damage_player)
                     .into(),
             );
     }
@@ -91,6 +92,8 @@ fn spawn_enemies(
                 ..default()
             })
             .insert(Enemy)
+            .insert(AttackTimer(Timer::from_seconds(0.5, true)))
+            .insert(Damage(10.0))
             .insert(Health::new(100.0))
             .insert(RigidBody::Dynamic)
             .insert(Velocity::default())
@@ -113,5 +116,28 @@ fn move_to_player(
         transform.rotation = Quat::from_rotation_z(Vec2::X.angle_between(dir));
 
         velocity.linvel = dir * 500.0;
+    }
+}
+
+fn damage_player(
+    time: Res<Time>,
+    mut enemies: Query<(&Transform, &mut AttackTimer, &Damage), With<Enemy>>,
+    mut player: Query<(&Transform, &mut Health), With<Player>>,
+) {
+    let (player_transform, mut health) = player.single_mut();
+
+    for (enemy_transform, mut attack_timer, damage) in &mut enemies {
+        let dist = player_transform
+            .translation
+            .truncate()
+            .distance(enemy_transform.translation.truncate());
+
+        const THRESHOLD: f32 = 100.0;
+        if dist <= THRESHOLD {
+            attack_timer.tick(time.delta());
+            if attack_timer.just_finished() {
+                health.0 -= damage.0;
+            }
+        }
     }
 }
