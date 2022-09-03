@@ -142,11 +142,15 @@ fn handle_button_press(
 
                 if lock.0 {
                     if icon_image.clone() == sprites.bullet_type[0].clone() {
+                        *bullet_type = BulletType::Rocket;
                     } else if icon_image.clone() == sprites.bullet_type[1].clone() {
+                        *bullet_type = BulletType::SawBlade;
                     } else if icon_image.clone() == sprites.spread[0].clone() {
                     } else if icon_image.clone() == sprites.spread[1].clone() {
                     } else if icon_image.clone() == sprites.effects[0].clone() {
+                        *has_ice = HasIce(true);
                     } else if icon_image.clone() == sprites.effects[1].clone() {
+                        *has_suck = HasSuck(true);
                     }
 
                     commands.entity(lock_entity).despawn_recursive();
