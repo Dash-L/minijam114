@@ -2,7 +2,7 @@ use bevy::{app::AppExit, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
-use components::{HasHealthBar, Health, HealthBar};
+use components::{HasHealthBar, Health, HealthBar, Player};
 use iyes_loopless::prelude::*;
 
 mod plugins;
@@ -105,16 +105,28 @@ fn update_buttons(
 }
 
 fn update_healthbars(
+    windows: Res<Windows>,
     entities: Query<
-        (&Health, &Children, &Transform),
-        (With<HasHealthBar>, Without<HealthBar>, Changed<Health>),
+        (&Health, &Children, &Transform, Option<&Player>),
+        (With<HasHealthBar>, Without<HealthBar>),
     >,
     mut healthbars: Query<(&HealthBar, &mut Transform)>,
 ) {
-    for (health, children, parent_transform) in &entities {
+    for (health, children, parent_transform, maybe_player) in &entities {
         for child in children {
-            if let Ok((healthbar, mut transform)) = healthbars.get_mut(*child) && healthbar.0 {
-                transform.scale.y = health.0 / 2.0 / parent_transform.scale.y;
+            if let Ok((healthbar, mut transform)) = healthbars.get_mut(*child) {
+                if healthbar.0 {
+                    transform.scale.y = health.0 / 2.0 / parent_transform.scale.y;
+                }
+
+                if maybe_player.is_some() {
+                    let window = windows.primary();
+                    transform.translation = Vec3::new(
+                        (window.height() - 50.0) / 10.0,
+                        (window.width() - 150.0) / 10.0,
+                        if healthbar.0 { 11.0 } else { 10.0 },
+                    );
+                }
             }
         }
     }
@@ -122,13 +134,23 @@ fn update_healthbars(
 
 fn insert_healthbars(
     mut commands: Commands,
-    entities: Query<(Entity, &Health, &Transform), Without<HasHealthBar>>,
+    windows: Res<Windows>,
+    entities: Query<(Entity, &Health, &Transform, Option<&Player>), Without<HasHealthBar>>,
 ) {
-    for (entity, health, transform) in &entities {
+    for (entity, health, transform, maybe_player) in &entities {
         commands
             .entity(entity)
             .with_children(|parent| {
-                let healthbar_offset_x = Vec3::NEG_X * 0.0;
+                let healthbar_pos = if maybe_player.is_some() {
+                    let window = windows.primary();
+                    Vec3::new(
+                        (window.height() - 50.0) / 10.0,
+                        (window.width() - 150.0) / 10.0,
+                        0.0,
+                    )
+                } else {
+                    Vec3::ZERO
+                };
 
                 parent
                     .spawn_bundle(SpriteBundle {
@@ -137,7 +159,7 @@ fn insert_healthbars(
                             custom_size: Some(Vec2::new(8.0, 1.0)),
                             ..default()
                         },
-                        transform: Transform::from_translation(healthbar_offset_x + Vec3::Z * 11.0)
+                        transform: Transform::from_translation(healthbar_pos + Vec3::Z * 11.0)
                             .with_scale(Vec3::new(1.0, health.0 / 2.0, 1.0) / transform.scale),
                         ..default()
                     })
@@ -150,7 +172,7 @@ fn insert_healthbars(
                             custom_size: Some(Vec2::new(8.0, 1.0)),
                             ..default()
                         },
-                        transform: Transform::from_translation(healthbar_offset_x + Vec3::Z * 10.0)
+                        transform: Transform::from_translation(healthbar_pos + Vec3::Z * 10.0)
                             .with_scale(Vec3::new(1.0, health.1 / 2.0, 1.0) / transform.scale),
                         ..default()
                     })
