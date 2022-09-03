@@ -12,15 +12,14 @@ pub struct Sprites {
     #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 2, rows = 1))]
     #[asset(path = "sprites/barrel-sheet.png")]
     pub barrel: Handle<TextureAtlas>,
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 2, rows = 1))]
-    #[asset(path = "sprites/bullettype-sheet.png")]
-    pub bullettype: Handle<TextureAtlas>,
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 2, rows = 1))]
-    #[asset(path = "sprites/spread-sheet.png")]
-    pub spread: Handle<TextureAtlas>,
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 2, rows = 1))]
-    #[asset(path = "sprites/effects-sheet.png")]
-    pub effects: Handle<TextureAtlas>,
+    #[asset(paths("sprites/rocket.png", "sprites/sawblade.png"), collection(typed))]
+    pub bullettype: Vec<Handle<Image>>,
+    #[asset(paths("sprites/spread1.png", "sprites/spread2.png"), collection(typed))]
+    pub spread: Vec<Handle<Image>>,
+    #[asset(paths("sprites/ice.png", "sprites/suc.png"), collection(typed))]
+    pub effects: Vec<Handle<Image>>,
+    #[asset(paths("sprites/lock.png", "sprites/unlock.png"), collection(typed))]
+    pub locks: Vec<Handle<Image>>,
     #[asset(path = "sprites/player-base.png")]
     pub base: Handle<Image>,
     #[asset(path = "sprites/zombie.png")]
