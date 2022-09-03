@@ -8,9 +8,9 @@ use rand::{thread_rng, Rng};
 use crate::{
     components::{
         AnimationTimer, Barrel, Bullet, Damage, Enemy, Health, HitEnemies, Knockback, Pierce,
-        Player, Ready, Spread,
+        Player, Ready,
     },
-    resources::{MousePosition, Sprites},
+    resources::{BulletType, HasIce, HasSuck, MousePosition, Spread, Sprites},
     GameState,
 };
 
@@ -19,6 +19,13 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MousePosition>()
+            .init_resource::<Spread>()
+            .init_resource::<BulletType>()
+            .init_resource::<HasIce>()
+            .init_resource::<HasSuck>()
+            .insert_resource(Damage(50.0))
+            .insert_resource(Knockback(0.0))
+            .insert_resource(Pierce(1))
             .add_exit_system(GameState::Menu, spawn_player)
             .add_system_set(
                 ConditionSet::new()
@@ -44,8 +51,6 @@ fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
         })
         .insert(Player)
         .insert(Health::new(200.0))
-        .insert(Knockback(0.0))
-        .insert(Spread(PI / 8.0))
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(7., 7.))
         .insert(LockedAxes::TRANSLATION_LOCKED)
@@ -66,10 +71,14 @@ fn shoot(
     mut commands: Commands,
     mouse_buttons: Res<Input<MouseButton>>,
     mouse_pos: Res<MousePosition>,
-    mut player: Query<(&Transform, &Knockback, &Spread), With<Player>>,
+    knockback: Res<Knockback>,
+    spread: Res<Spread>,
+    damage: Res<Damage>,
+    pierce: Res<Pierce>,
+    mut player: Query<&Transform, With<Player>>,
     mut barrel: Query<(&mut TextureAtlasSprite, &mut AnimationTimer, &mut Ready), With<Barrel>>,
 ) {
-    let (transform, knockback, spread) = player.single_mut();
+    let transform = player.single_mut();
     let (mut sprite, mut timer, mut ready) = barrel.single_mut();
 
     if mouse_buttons.just_pressed(MouseButton::Left) && timer.paused() {
@@ -81,7 +90,7 @@ fn shoot(
     let mut rng = thread_rng();
 
     if timer.just_finished() && !timer.paused() && sprite.index == 0 {
-        let dir = Vec2::from_angle(rng.gen_range(-spread.0..=spread.0))
+        let dir = Vec2::from_angle(rng.gen_range(-spread.1..=spread.1))
             .rotate(mouse_pos.0 - transform.translation.truncate())
             .normalize();
 
@@ -97,8 +106,8 @@ fn shoot(
                 ..default()
             })
             .insert(Bullet)
-            .insert(Pierce(3))
-            .insert(Damage(50.0))
+            .insert(pierce.clone())
+            .insert(damage.clone())
             .insert(knockback.clone())
             .insert(HitEnemies::default())
             .insert(RigidBody::Dynamic)

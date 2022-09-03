@@ -31,16 +31,13 @@ impl Health {
     }
 }
 
-#[derive(Component)]
-pub struct Spread(pub f32);
-
 #[derive(Component, Default)]
 pub struct HitEnemies(pub HashSet<Entity>);
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Pierce(pub i32);
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Damage(pub f32);
 
 #[derive(Component, Clone)]

@@ -1,11 +1,11 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, ui::FocusPolicy};
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
 use crate::{
-    components::Player,
+    components::{Damage, Knockback, Pierce, Player},
     despawn_with,
-    resources::{Fonts, Sprites},
+    resources::{BulletType, Fonts, HasIce, HasSuck, Sprites},
     GameState,
 };
 
@@ -14,6 +14,9 @@ struct PrevVelocity(Velocity);
 
 #[derive(Component)]
 struct PrevForce(ExternalForce);
+
+#[derive(Component)]
+struct Lock(bool);
 
 #[derive(Component)]
 struct SkillTreeMenu;
@@ -70,7 +73,7 @@ fn spawn_skill_tree(mut commands: Commands, sprites: Res<Sprites>) {
                         ..default()
                     })
                     .with_children(|parent| {
-                        for image in images {
+                        for (idx, image) in images.iter().enumerate() {
                             parent
                                 .spawn_bundle(ButtonBundle {
                                     style: Style {
@@ -83,24 +86,77 @@ fn spawn_skill_tree(mut commands: Commands, sprites: Res<Sprites>) {
                                 })
                                 .with_children(|parent| {
                                     parent.spawn_bundle(ImageBundle {
-                                        image: UiImage(image),
+                                        image: UiImage(image.clone()),
+                                        focus_policy: FocusPolicy::Pass,
                                         ..default()
                                     });
-                                    parent.spawn_bundle(ImageBundle {
-                                        style: Style {
-                                            size: Size::new(Val::Px(30.0), Val::Px(30.0)),
-                                            position_type: PositionType::Absolute,
+                                    parent
+                                        .spawn_bundle(ImageBundle {
+                                            style: Style {
+                                                size: Size::new(Val::Px(30.0), Val::Px(30.0)),
+                                                position_type: PositionType::Absolute,
+                                                ..default()
+                                            },
+                                            image: UiImage(sprites.locks[1 - idx].clone()),
+                                            focus_policy: FocusPolicy::Pass,
                                             ..default()
-                                        },
-                                        image: UiImage(sprites.locks[1].clone()),
-                                        ..default()
-                                    });
+                                        })
+                                        .insert(Lock(idx == 1));
                                 });
                         }
                     });
             }
         })
         .insert(SkillTreeMenu);
+}
+
+fn handle_button_press(
+    mut commands: Commands,
+    sprites: Res<Sprites>,
+    mut pierce: ResMut<Pierce>,
+    mut damage: ResMut<Damage>,
+    mut knockback: ResMut<Knockback>,
+    mut bullet_type: ResMut<BulletType>,
+    mut has_ice: ResMut<HasIce>,
+    mut has_suck: ResMut<HasSuck>,
+    buttons: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
+    icons: Query<&Handle<Image>, Without<Lock>>,
+    mut locks: Query<(Entity, &mut Lock, &mut Handle<Image>)>,
+) {
+    for (interaction, children) in &buttons {
+        if *interaction == Interaction::Clicked {
+            let mut icon = None;
+            let mut lock = None;
+
+            for child in children {
+                if let Ok(actual_icon) = icons.get(*child) {
+                    icon = Some(actual_icon);
+                } else if let Ok((lock_entity, _, _)) = locks.get(*child) {
+                    lock = Some(lock_entity);
+                }
+            }
+
+            let icon_image = icon.unwrap();
+            if let Some(lock) = lock {
+                let (lock_entity, mut lock, mut lock_image) = locks.get_mut(lock).unwrap();
+
+                if lock.0 {
+                    if icon_image.clone() == sprites.bullet_type[0].clone() {
+                    } else if icon_image.clone() == sprites.bullet_type[1].clone() {
+                    } else if icon_image.clone() == sprites.spread[0].clone() {
+                    } else if icon_image.clone() == sprites.spread[1].clone() {
+                    } else if icon_image.clone() == sprites.effects[0].clone() {
+                    } else if icon_image.clone() == sprites.effects[1].clone() {
+                    }
+
+                    commands.entity(lock_entity).despawn_recursive();
+                } else {
+                    lock.0 = true;
+                    *lock_image = sprites.locks[1].clone();
+                }
+            }
+        }
+    }
 }
 
 fn pause(

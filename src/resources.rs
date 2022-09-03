@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 
@@ -25,6 +27,42 @@ pub struct Sprites {
     #[asset(path = "sprites/zombie.png")]
     pub enemy: Handle<Image>,
 }
+
+pub struct Spread(pub u32, pub f32);
+
+impl Spread {
+    pub fn next(&mut self) {
+        if self.0 == 0 {
+            self.1 = PI / 16.0;
+
+            self.0 += 1;
+        } else if self.0 == 1 {
+            self.1 = 0.0;
+
+            self.0 += 1;
+        }
+    }
+}
+
+impl Default for Spread {
+    fn default() -> Spread {
+        Spread(0, PI / 8.0)
+    }
+}
+
+#[derive(Default)]
+pub enum BulletType {
+    #[default]
+    Regular = 0,
+    Rocket = 1,
+    SawBlade = 2,
+}
+
+#[derive(Default)]
+pub struct HasIce(pub bool);
+
+#[derive(Default)]
+pub struct HasSuck(pub bool);
 
 #[derive(Default)]
 pub struct MousePosition(pub Vec2);
