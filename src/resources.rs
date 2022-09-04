@@ -36,6 +36,22 @@ pub struct Sprites {
     pub enemy: Handle<Image>,
 }
 
+#[derive(AssetCollection)]
+pub struct Sounds {
+    #[asset(path = "sounds/bullethit.wav")]
+    pub bullet_hit: Handle<AudioSource>,
+    #[asset(path = "sounds/playerhit.wav")]
+    pub player_hit: Handle<AudioSource>,
+    #[asset(path = "sounds/rockethit.wav")]
+    pub rocket_hit: Handle<AudioSource>,
+    #[asset(path = "sounds/sawhithit.wav")]
+    pub saw_hit: Handle<AudioSource>,
+    #[asset(path = "sounds/shoot.wav")]
+    pub shoot: Handle<AudioSource>,
+    #[asset(path = "sounds/coinpickup.wav")]
+    pub coin_pickup: Handle<AudioSource>,
+}
+
 pub struct Spread(pub u32, pub f32);
 
 impl Spread {
