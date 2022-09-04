@@ -47,7 +47,8 @@ fn main() {
             LoadingState::new(GameState::Loading)
                 .continue_to_state(GameState::Menu)
                 .with_collection::<Fonts>()
-                .with_collection::<Sprites>(),
+                .with_collection::<Sprites>()
+                .with_collection::<Sounds>(),
         )
         .add_plugins(DefaultPlugins)
         .add_plugin(WorldInspectorPlugin::new())
@@ -230,6 +231,8 @@ fn collide_coins(
     mut coins: ResMut<Coins>,
     player: Query<Entity, With<Player>>,
     coins_q: Query<Entity, With<Coin>>,
+    audio: Res<Audio>,
+    sound: Res<Sounds>,
 ) {
     for ev in collision_events.iter() {
         if let CollisionEvent::Started(e1, e2, _) = ev {
@@ -242,6 +245,10 @@ fn collide_coins(
             };
 
             if let Ok(_) = player.get(*maybe_player) {
+                audio.play_with_settings(
+                    sound.coin_pickup.clone(),
+                    PlaybackSettings::ONCE.with_volume(0.1),
+                );
                 coins.0 += 1;
                 commands.entity(*coin_entity).despawn_recursive();
             }

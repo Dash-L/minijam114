@@ -44,7 +44,7 @@ pub struct Sounds {
     pub player_hit: Handle<AudioSource>,
     #[asset(path = "sounds/rockethit.wav")]
     pub rocket_hit: Handle<AudioSource>,
-    #[asset(path = "sounds/sawhithit.wav")]
+    #[asset(path = "sounds/sawhit.wav")]
     pub saw_hit: Handle<AudioSource>,
     #[asset(path = "sounds/shoot.wav")]
     pub shoot: Handle<AudioSource>,

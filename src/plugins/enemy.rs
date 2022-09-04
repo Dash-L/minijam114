@@ -5,7 +5,7 @@ use rand::{distributions::Standard, prelude::*};
 
 use crate::{
     components::{AttackTimer, Bullet, Damage, Enemy, Health, ImmobileTimer, Player},
-    resources::{EnemyScale, HasSuck, ScaleTimer, ShootTimer, Sprites},
+    resources::{EnemyScale, HasSuck, ScaleTimer, Sounds, Sprites},
     GameState,
 };
 
@@ -25,7 +25,6 @@ impl Plugin for EnemyPlugin {
         app.insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
             .insert_resource(EnemyScale(1.0))
             .insert_resource(ScaleTimer(Timer::from_seconds(1.0, true)))
-            .insert_resource(ShootTimer(Timer::from_seconds(0.125, true)))
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::Playing)
@@ -189,6 +188,8 @@ fn damage_player(
     time: Res<Time>,
     mut enemies: Query<(&Transform, &mut AttackTimer, &Damage), With<Enemy>>,
     mut player: Query<(&Transform, &mut Health), With<Player>>,
+    audio: Res<Audio>,
+    sound: Res<Sounds>,
 ) {
     let (player_transform, mut health) = player.single_mut();
 
@@ -202,6 +203,10 @@ fn damage_player(
         if dist <= THRESHOLD {
             attack_timer.tick(time.delta());
             if attack_timer.just_finished() {
+                audio.play_with_settings(
+                    sound.player_hit.clone(),
+                    PlaybackSettings::ONCE.with_volume(0.1),
+                );
                 health.0 -= damage.0;
             }
         }
