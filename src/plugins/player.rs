@@ -9,7 +9,7 @@ use crate::{
     components::{
         Barrel, Bullet, Coin, Damage, Enemy, Health, HitEnemies, Knockback, Pierce, Player, Ready,
     },
-    resources::{BulletType, Coins, Fonts, MousePosition, ShootTimer, Spread, Sprites},
+    resources::{BulletType, Coins, Fonts, MousePosition, ShootTimer, Sounds, Spread, Sprites},
     GameState,
 };
 
@@ -122,6 +122,8 @@ fn shoot(
     mut timer: ResMut<ShootTimer>,
     mut player: Query<&Transform, With<Player>>,
     mut barrel: Query<(&mut TextureAtlasSprite, &mut Ready), With<Barrel>>,
+    audio: Res<Audio>,
+    sound: Res<Sounds>,
 ) {
     let transform = player.single_mut();
     let (mut sprite, mut ready) = barrel.single_mut();
@@ -140,6 +142,11 @@ fn shoot(
         let dir = Vec2::from_angle(rng.gen_range(-spread.1..=spread.1))
             .rotate(mouse_pos.0 - transform.translation.truncate())
             .normalize();
+
+        audio.play_with_settings(
+            sound.shoot.clone(),
+            PlaybackSettings::ONCE.with_volume(0.05),
+        );
 
         let scale = match *bullet_type {
             BulletType::Regular => Vec3::splat(1.5),
@@ -231,6 +238,9 @@ fn collide_bullets(
     mut commands: Commands,
     mut bullets: Query<(Entity, &mut HitEnemies, &mut Pierce, &Damage, &Knockback), With<Bullet>>,
     mut enemies: Query<(Entity, &ExternalForce, &mut Health, &mut ExternalImpulse), With<Enemy>>,
+    bullet_type: Res<BulletType>,
+    audio: Res<Audio>,
+    sound: Res<Sounds>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
     let mut handled_entities = HashSet::new();
@@ -254,6 +264,11 @@ fn collide_bullets(
             if let Ok((enemy_entity, force, mut health, mut impulse)) =
                 enemies.get_mut(*maybe_enemy) && !hit_enemies.0.contains(&enemy_entity)
             {
+                match *bullet_type {
+                    BulletType::Regular => audio.play_with_settings(sound.bullet_hit.clone(), PlaybackSettings::ONCE.with_volume(0.1)),
+                    BulletType::Rocket => audio.play_with_settings(sound.rocket_hit.clone(), PlaybackSettings::ONCE.with_volume(0.1)),
+                    BulletType::SawBlade => audio.play_with_settings(sound.saw_hit.clone(), PlaybackSettings::ONCE.with_volume(0.1)),
+                };
                 hit_enemies.0.insert(enemy_entity);
                 pierce.0 -= 1;
                 impulse.impulse = force.force.normalize() * -knockback.0;
