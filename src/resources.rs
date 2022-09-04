@@ -22,6 +22,12 @@ pub struct Sprites {
     pub effects: Vec<Handle<Image>>,
     #[asset(paths("sprites/lock.png", "sprites/unlock.png"), collection(typed))]
     pub locks: Vec<Handle<Image>>,
+    #[asset(path = "sprites/rocket.png")]
+    pub rocket: Handle<Image>,
+    #[asset(path = "sprites/sawblade.png")]
+    pub saw_blade: Handle<Image>,
+    #[asset(path = "sprites/bullet.png")]
+    pub bullet: Handle<Image>,
     #[asset(path = "sprites/player-base.png")]
     pub base: Handle<Image>,
     #[asset(path = "sprites/zombie.png")]
