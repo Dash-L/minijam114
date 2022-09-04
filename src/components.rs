@@ -48,7 +48,7 @@ pub struct Damage(pub f32);
 
 impl Default for Damage {
     fn default() -> Damage {
-        Damage(50.0)
+        Damage(75.0)
     }
 }
 

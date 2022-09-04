@@ -57,9 +57,9 @@ fn scale_enemies(
 ) {
     scale_timer.tick(time.delta());
     if scale_timer.just_finished() {
-        enemy_scale.0 *= 1.01;
+        enemy_scale.0 *= 1.005;
         let duration = spawn_timer.duration();
-        spawn_timer.set_duration(duration.div_f32(1.02));
+        spawn_timer.set_duration(duration.div_f32(1.01));
     }
 }
 
