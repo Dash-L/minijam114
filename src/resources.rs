@@ -77,3 +77,9 @@ pub struct MousePosition(pub Vec2);
 
 #[derive(Default)]
 pub struct Coins(pub u32);
+#[derive(Deref, DerefMut)]
+pub struct ScaleTimer(pub Timer);
+pub struct EnemyScale(pub f32);
+
+#[derive(Deref, DerefMut)]
+pub struct ShootTimer(pub Timer);

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::{prelude::*, ui::FocusPolicy, utils::HashSet};
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
@@ -5,7 +7,7 @@ use iyes_loopless::prelude::*;
 use crate::{
     components::{Damage, Knockback, Pierce, Player},
     despawn_with,
-    resources::{BulletType, Coins, Fonts, HasIce, HasSuck, Spread, Sprites},
+    resources::{BulletType, Coins, Fonts, HasIce, HasSuck, ShootTimer, Spread, Sprites},
     GameState,
 };
 
@@ -70,7 +72,7 @@ fn spawn_skill_tree(
     fonts: Res<Fonts>,
     sprites: Res<Sprites>,
 ) {
-    coins.0 = 100;
+    coins.0 = 200;
     commands
         .spawn_bundle(NodeBundle {
             color: UiColor([0.0; 4].into()),
@@ -175,6 +177,7 @@ fn handle_button_press(
     mut has_ice: ResMut<HasIce>,
     mut has_suck: ResMut<HasSuck>,
     mut tree_events: EventWriter<TreeEvent>,
+    mut shoot_timer: ResMut<ShootTimer>,
     buttons: Query<(Entity, &Interaction, &Children), (Changed<Interaction>, With<Button>)>,
     icons: Query<&UiImage, Without<Lock>>,
     locks: Query<(Entity, &Lock)>,
@@ -201,11 +204,13 @@ fn handle_button_press(
                         *bullet_type = BulletType::Rocket;
                         damage.0 = 80.0;
                         knockback.0 = 2000.0;
+                        shoot_timer.set_duration(Duration::from_secs_f32(0.0625));
                     } else if icon_image.clone() == sprites.bullet_type[1].clone() {
                         *bullet_type = BulletType::SawBlade;
                         damage.0 = 120.0;
                         pierce.0 = 4;
                         knockback.0 = 0.0;
+                        shoot_timer.set_duration(Duration::from_secs_f32(0.03125));
                     } else if icon_image.clone() == sprites.spread[0].clone() {
                         spread.next();
                     } else if icon_image.clone() == sprites.spread[1].clone() {

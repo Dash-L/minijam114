@@ -5,7 +5,7 @@ use rand::{distributions::Standard, prelude::*};
 
 use crate::{
     components::{AttackTimer, Bullet, Damage, Enemy, Health, ImmobileTimer, Player},
-    resources::{HasSuck, Sprites},
+    resources::{EnemyScale, HasSuck, ScaleTimer, ShootTimer, Sprites},
     GameState,
 };
 
@@ -23,10 +23,14 @@ struct SpawnTimer(Timer);
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
+            .insert_resource(EnemyScale(1.0))
+            .insert_resource(ScaleTimer(Timer::from_seconds(1.0, true)))
+            .insert_resource(ShootTimer(Timer::from_seconds(0.125, true)))
             .add_system_set(
                 ConditionSet::new()
                     .run_in_state(GameState::Playing)
                     .with_system(spawn_enemies)
+                    .with_system(scale_enemies)
                     .with_system(move_to_player)
                     .with_system(damage_player)
                     .with_system(handle_freeze)
@@ -47,10 +51,24 @@ impl Distribution<EnemySpawnPos> for Standard {
         }
     }
 }
+fn scale_enemies(
+    time: Res<Time>,
+    mut enemy_scale: ResMut<EnemyScale>,
+    mut scale_timer: ResMut<ScaleTimer>,
+    mut spawn_timer: ResMut<SpawnTimer>,
+) {
+    scale_timer.tick(time.delta());
+    if scale_timer.just_finished() {
+        enemy_scale.0 *= 1.01;
+        let duration = spawn_timer.duration();
+        spawn_timer.set_duration(duration.div_f32(1.02));
+    }
+}
 
 fn spawn_enemies(
     mut commands: Commands,
     time: Res<Time>,
+    enemy_scale: Res<EnemyScale>,
     mut spawn_timer: ResMut<SpawnTimer>,
     windows: Res<Windows>,
     sprites: Res<Sprites>,
@@ -94,8 +112,8 @@ fn spawn_enemies(
             })
             .insert(Enemy)
             .insert(AttackTimer(Timer::from_seconds(0.5, true)))
-            .insert(Damage(10.0))
-            .insert(Health::new(100.0))
+            .insert(Damage(10.0 * enemy_scale.0))
+            .insert(Health::new(100.0 * enemy_scale.0))
             .insert(RigidBody::Dynamic)
             .insert(ExternalImpulse::default())
             .insert(ExternalForce::default())
@@ -126,7 +144,8 @@ fn move_to_player(
             let mut res = Vec2::ZERO;
 
             for bullet_transform in &bullets {
-                let dir = bullet_transform.translation.truncate() - transform.translation.truncate();
+                let dir =
+                    bullet_transform.translation.truncate() - transform.translation.truncate();
 
                 res += dir.normalize() * 150000.0 / dir.length();
             }

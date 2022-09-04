@@ -7,10 +7,10 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     components::{
-        AnimationTimer, Barrel, Bullet, Damage, Enemy, Health, HitEnemies, ImmobileTimer,
-        Knockback, Pierce, Player, Ready,
+        Barrel, Bullet, Damage, Enemy, Health, HitEnemies, ImmobileTimer, Knockback, Pierce,
+        Player, Ready,
     },
-    resources::{BulletType, Coins, HasIce, HasSuck, MousePosition, Spread, Sprites},
+    resources::{BulletType, Coins, HasIce, HasSuck, MousePosition, ShootTimer, Spread, Sprites},
     GameState,
 };
 
@@ -27,6 +27,7 @@ impl Plugin for PlayerPlugin {
             .insert_resource(Damage(50.0))
             .insert_resource(Knockback(0.0))
             .insert_resource(Pierce(1))
+            .insert_resource(ShootTimer(Timer::from_seconds(0.125, true)))
             .add_exit_system(GameState::Menu, spawn_player)
             .add_system_set(
                 ConditionSet::new()
@@ -63,7 +64,6 @@ fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
                     ..default()
                 })
                 .insert(Barrel)
-                .insert(AnimationTimer(Timer::from_seconds(0.125, true)))
                 .insert(Ready(false));
         });
 }
@@ -78,11 +78,12 @@ fn shoot(
     spread: Res<Spread>,
     damage: Res<Damage>,
     pierce: Res<Pierce>,
+    mut timer: ResMut<ShootTimer>,
     mut player: Query<&Transform, With<Player>>,
-    mut barrel: Query<(&mut TextureAtlasSprite, &mut AnimationTimer, &mut Ready), With<Barrel>>,
+    mut barrel: Query<(&mut TextureAtlasSprite, &mut Ready), With<Barrel>>,
 ) {
     let transform = player.single_mut();
-    let (mut sprite, mut timer, mut ready) = barrel.single_mut();
+    let (mut sprite, mut ready) = barrel.single_mut();
 
     if mouse_buttons.just_pressed(MouseButton::Left) && timer.paused() {
         timer.unpause();
@@ -136,17 +137,10 @@ fn shoot(
 fn animate_player(
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlas>>,
-    mut barrel: Query<
-        (
-            &mut AnimationTimer,
-            &Handle<TextureAtlas>,
-            &mut TextureAtlasSprite,
-            &mut Ready,
-        ),
-        With<Barrel>,
-    >,
+    mut anim_timer: ResMut<ShootTimer>,
+    mut barrel: Query<(&Handle<TextureAtlas>, &mut TextureAtlasSprite, &mut Ready), With<Barrel>>,
 ) {
-    let (mut anim_timer, atlas_handle, mut sprite, mut ready) = barrel.single_mut();
+    let (atlas_handle, mut sprite, mut ready) = barrel.single_mut();
 
     if anim_timer.paused() {
         anim_timer.set_elapsed(Duration::ZERO);
