@@ -10,7 +10,7 @@ use crate::{
         AnimationTimer, Barrel, Bullet, Damage, Enemy, Health, HitEnemies, Knockback, Pierce,
         Player, Ready,
     },
-    resources::{BulletType, HasIce, HasSuck, MousePosition, Spread, Sprites},
+    resources::{BulletType, Coins, HasIce, HasSuck, MousePosition, Spread, Sprites},
     GameState,
 };
 
@@ -19,6 +19,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MousePosition>()
+            .init_resource::<Coins>()
             .init_resource::<Spread>()
             .init_resource::<BulletType>()
             .init_resource::<HasIce>()

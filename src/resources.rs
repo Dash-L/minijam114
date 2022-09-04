@@ -66,3 +66,6 @@ pub struct HasSuck(pub bool);
 
 #[derive(Default)]
 pub struct MousePosition(pub Vec2);
+
+#[derive(Default)]
+pub struct Coins(pub u32);

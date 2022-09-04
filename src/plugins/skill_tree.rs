@@ -5,7 +5,7 @@ use iyes_loopless::prelude::*;
 use crate::{
     components::{Damage, Knockback, Pierce, Player},
     despawn_with,
-    resources::{BulletType, Fonts, HasIce, HasSuck, Sprites},
+    resources::{BulletType, Coins, Fonts, HasIce, HasSuck, Spread, Sprites},
     GameState,
 };
 
@@ -16,21 +16,34 @@ struct PrevVelocity(Velocity);
 struct PrevForce(ExternalForce);
 
 #[derive(Component)]
-struct Lock(bool);
+struct Lock(bool, u32);
+
+#[derive(Component)]
+struct TreeBranch;
 
 #[derive(Component)]
 struct SkillTreeMenu;
+
+struct TreeEvent(Entity);
 
 pub struct SkillTreePlugin;
 
 impl Plugin for SkillTreePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(open_skill_tree.run_in_state(GameState::Playing))
+        app.add_event::<TreeEvent>()
+            .add_system(open_skill_tree.run_in_state(GameState::Playing))
             .add_enter_system(GameState::SkillTree, spawn_skill_tree)
             .add_enter_system(GameState::SkillTree, pause)
             .add_exit_system(GameState::SkillTree, unpause)
             .add_exit_system(GameState::SkillTree, despawn_with::<SkillTreeMenu>)
-            .add_system(close_skill_tree.run_in_state(GameState::SkillTree));
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(GameState::SkillTree)
+                    .with_system(close_skill_tree)
+                    .with_system(handle_button_press)
+                    .with_system(update_locks)
+                    .into(),
+            );
     }
 }
 
@@ -46,7 +59,8 @@ fn close_skill_tree(mut commands: Commands, mouse: Res<Input<MouseButton>>) {
     }
 }
 
-fn spawn_skill_tree(mut commands: Commands, sprites: Res<Sprites>) {
+fn spawn_skill_tree(mut commands: Commands, mut coins: ResMut<Coins>, fonts: Res<Fonts>, sprites: Res<Sprites>) {
+    coins.0 = 100;
     commands
         .spawn_bundle(NodeBundle {
             color: UiColor([0.0; 4].into()),
@@ -72,6 +86,7 @@ fn spawn_skill_tree(mut commands: Commands, sprites: Res<Sprites>) {
                         },
                         ..default()
                     })
+                    .insert(TreeBranch)
                     .with_children(|parent| {
                         for (idx, image) in images.iter().enumerate() {
                             parent
@@ -101,7 +116,26 @@ fn spawn_skill_tree(mut commands: Commands, sprites: Res<Sprites>) {
                                             focus_policy: FocusPolicy::Pass,
                                             ..default()
                                         })
-                                        .insert(Lock(idx == 1));
+                                        .insert(Lock(idx == 0, if idx == 0 { 20 } else { 50 }));
+                                    parent.spawn_bundle(TextBundle {
+                                        style: Style {
+                                            position_type: PositionType::Absolute,
+                                            position: UiRect {
+                                                left: Val::Px(70.0),
+                                                ..default()
+                                            },
+                                            ..default()
+                                        },
+                                        text: Text::from_section(
+                                            format!("{}", if idx == 0 { 20 } else { 50 }),
+                                            TextStyle {
+                                                color: Color::ALICE_BLUE,
+                                                font: fonts.main.clone(),
+                                                font_size: 30.0,
+                                            },
+                                        ),
+                                        ..default()
+                                    });
                                 });
                         }
                     });
@@ -113,17 +147,20 @@ fn spawn_skill_tree(mut commands: Commands, sprites: Res<Sprites>) {
 fn handle_button_press(
     mut commands: Commands,
     sprites: Res<Sprites>,
+    mut coins: ResMut<Coins>,
     mut pierce: ResMut<Pierce>,
     mut damage: ResMut<Damage>,
     mut knockback: ResMut<Knockback>,
+    mut spread: ResMut<Spread>,
     mut bullet_type: ResMut<BulletType>,
     mut has_ice: ResMut<HasIce>,
     mut has_suck: ResMut<HasSuck>,
-    buttons: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
-    icons: Query<&Handle<Image>, Without<Lock>>,
-    mut locks: Query<(Entity, &mut Lock, &mut Handle<Image>)>,
+    mut tree_events: EventWriter<TreeEvent>,
+    buttons: Query<(Entity, &Interaction, &Children), (Changed<Interaction>, With<Button>)>,
+    icons: Query<&UiImage, Without<Lock>>,
+    locks: Query<(Entity, &Lock)>,
 ) {
-    for (interaction, children) in &buttons {
+    for (entity, interaction, children) in &buttons {
         if *interaction == Interaction::Clicked {
             let mut icon = None;
             let mut lock = None;
@@ -131,32 +168,66 @@ fn handle_button_press(
             for child in children {
                 if let Ok(actual_icon) = icons.get(*child) {
                     icon = Some(actual_icon);
-                } else if let Ok((lock_entity, _, _)) = locks.get(*child) {
+                } else if let Ok((lock_entity, _)) = locks.get(*child) {
                     lock = Some(lock_entity);
                 }
             }
 
-            let icon_image = icon.unwrap();
+            let UiImage(icon_image) = icon.unwrap();
             if let Some(lock) = lock {
-                let (lock_entity, mut lock, mut lock_image) = locks.get_mut(lock).unwrap();
+                let (lock_entity, lock) = locks.get(lock).unwrap();
 
-                if lock.0 {
+                if lock.0 && coins.0 >= lock.1 {
                     if icon_image.clone() == sprites.bullet_type[0].clone() {
                         *bullet_type = BulletType::Rocket;
+                        damage.0 = 80.0;
+                        knockback.0 = 2000.0;
                     } else if icon_image.clone() == sprites.bullet_type[1].clone() {
                         *bullet_type = BulletType::SawBlade;
+                        damage.0 = 120.0;
+                        pierce.0 = 4;
+                        knockback.0 = 0.0;
                     } else if icon_image.clone() == sprites.spread[0].clone() {
+                        spread.next();
                     } else if icon_image.clone() == sprites.spread[1].clone() {
+                        spread.next();
                     } else if icon_image.clone() == sprites.effects[0].clone() {
-                        *has_ice = HasIce(true);
+                        has_ice.0 = true;
                     } else if icon_image.clone() == sprites.effects[1].clone() {
-                        *has_suck = HasSuck(true);
+                        has_suck.0 = true;
                     }
 
+                    tree_events.send(TreeEvent(entity));
+
+                    coins.0 -= lock.1;
                     commands.entity(lock_entity).despawn_recursive();
-                } else {
-                    lock.0 = true;
-                    *lock_image = sprites.locks[1].clone();
+                }
+            }
+        }
+    }
+}
+
+fn update_locks(
+    sprites: Res<Sprites>,
+    mut tree_events: EventReader<TreeEvent>,
+    buttons: Query<(&Parent, &Children), With<Button>>,
+    nodes: Query<&Children, With<TreeBranch>>,
+    mut locks: Query<(&mut Lock, &mut UiImage)>,
+) {
+    for ev in tree_events.iter() {
+        let (parent, _) = buttons.get(ev.0).unwrap();
+
+        let children = nodes.get(parent.get()).unwrap();
+
+        for child in children {
+            if *child != ev.0 {
+                let (_, children) = buttons.get(*child).unwrap();
+
+                for child in children {
+                    if let Ok((mut lock, mut image)) = locks.get_mut(*child) {
+                        lock.0 = true;
+                        image.0 = sprites.locks[1].clone();
+                    }
                 }
             }
         }
