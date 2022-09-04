@@ -4,7 +4,7 @@ use iyes_loopless::prelude::*;
 
 use crate::{
     button_pressed,
-    components::{Bullet, Damage, Enemy, Knockback, Pierce, Player},
+    components::{Bullet, Damage, Enemy, Knockback, Pierce, Player, Coin},
     despawn_with,
     resources::{BulletType, Coins, Fonts, ShootTimer, Spread},
     update_buttons, GameState,
@@ -25,6 +25,7 @@ impl Plugin for GameOverPlugin {
             .add_enter_system(GameState::GameOver, despawn_with::<Bullet>)
             .add_enter_system(GameState::GameOver, despawn_with::<Player>)
             .add_enter_system(GameState::GameOver, despawn_with::<Node>)
+            .add_enter_system(GameState::GameOver, despawn_with::<Coin>)
             .add_enter_system(GameState::GameOver, show_game_over)
             .add_exit_system(GameState::GameOver, despawn_with::<GameOverMenu>)
             .add_enter_system(GameState::Menu, reset_stats)

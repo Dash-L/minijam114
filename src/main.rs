@@ -1,6 +1,5 @@
 use bevy::{app::AppExit, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
-use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
 use components::{Coin, HasHealthBar, Health, HealthBar, Player};
 use iyes_loopless::prelude::*;
@@ -52,9 +51,7 @@ fn main() {
                 .with_collection::<Sounds>(),
         )
         .add_plugins(DefaultPlugins)
-        .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugin(RapierDebugRenderPlugin::default())
         // Our plugins
         .add_exit_system(GameState::Loading, spawn_camera)
         .add_plugin(PlayerPlugin)
