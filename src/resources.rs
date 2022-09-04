@@ -28,6 +28,8 @@ pub struct Sprites {
     pub saw_blade: Handle<Image>,
     #[asset(path = "sprites/bullet.png")]
     pub bullet: Handle<Image>,
+    #[asset(path = "sprites/coin.png")]
+    pub coin: Handle<Image>,
     #[asset(path = "sprites/player-base.png")]
     pub base: Handle<Image>,
     #[asset(path = "sprites/zombie.png")]
