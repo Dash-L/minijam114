@@ -37,10 +37,22 @@ pub struct HitEnemies(pub HashSet<Entity>);
 #[derive(Component, Clone)]
 pub struct Pierce(pub i32);
 
+impl Default for Pierce {
+    fn default() -> Pierce {
+        Pierce(1)
+    }
+}
+
 #[derive(Component, Clone)]
 pub struct Damage(pub f32);
 
-#[derive(Component, Clone)]
+impl Default for Damage {
+    fn default() -> Damage {
+        Damage(50.0)
+    }
+}
+
+#[derive(Component, Clone, Default)]
 pub struct Knockback(pub f32);
 
 #[derive(Component)]

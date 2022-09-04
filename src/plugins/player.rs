@@ -7,12 +7,9 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     components::{
-        Barrel, Bullet, Coin, Damage, Enemy, Health, HitEnemies, Knockback, Pierce,
-        Player, Ready,
+        Barrel, Bullet, Coin, Damage, Enemy, Health, HitEnemies, Knockback, Pierce, Player, Ready,
     },
-    resources::{
-        BulletType, Coins, Fonts, MousePosition, ShootTimer, Spread, Sprites,
-    },
+    resources::{BulletType, Coins, Fonts, MousePosition, ShootTimer, Spread, Sprites},
     GameState,
 };
 
@@ -24,10 +21,10 @@ impl Plugin for PlayerPlugin {
             .init_resource::<Coins>()
             .init_resource::<Spread>()
             .init_resource::<BulletType>()
-            .insert_resource(Damage(50.0))
-            .insert_resource(Knockback(0.0))
-            .insert_resource(Pierce(1))
-            .insert_resource(ShootTimer(Timer::from_seconds(0.125, true)))
+            .init_resource::<ShootTimer>()
+            .init_resource::<Knockback>()
+            .init_resource::<Pierce>()
+            .init_resource::<Damage>()
             .add_exit_system(GameState::Menu, spawn_player)
             .add_system_set(
                 ConditionSet::new()
@@ -38,6 +35,7 @@ impl Plugin for PlayerPlugin {
                     .with_system(animate_player)
                     .with_system(collide_bullets)
                     .with_system(despawn_offscreen)
+                    .with_system(handle_player_death)
                     .into(),
             );
     }
@@ -128,10 +126,12 @@ fn shoot(
     let transform = player.single_mut();
     let (mut sprite, mut ready) = barrel.single_mut();
 
-    if mouse_buttons.just_pressed(MouseButton::Left) && timer.paused() {
-        timer.unpause();
+    if mouse_buttons.just_pressed(MouseButton::Left) {
         ready.0 = false;
-        sprite.index = 1;
+        if timer.paused() {
+            timer.unpause();
+            sprite.index = 1;
+        }
     }
 
     let mut rng = thread_rng();
@@ -230,15 +230,7 @@ fn rotate_player(
 fn collide_bullets(
     mut commands: Commands,
     mut bullets: Query<(Entity, &mut HitEnemies, &mut Pierce, &Damage, &Knockback), With<Bullet>>,
-    mut enemies: Query<
-        (
-            Entity,
-            &ExternalForce,
-            &mut Health,
-            &mut ExternalImpulse,
-        ),
-        With<Enemy>,
-    >,
+    mut enemies: Query<(Entity, &ExternalForce, &mut Health, &mut ExternalImpulse), With<Enemy>>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
     let mut handled_entities = HashSet::new();
@@ -273,6 +265,14 @@ fn collide_bullets(
                 handled_entities.insert(enemy_entity);
             }
         }
+    }
+}
+
+fn handle_player_death(mut commands: Commands, player: Query<&Health, With<Player>>) {
+    let health = player.single();
+
+    if health.0 <= 0.0 {
+        commands.insert_resource(NextState(GameState::GameOver));
     }
 }
 

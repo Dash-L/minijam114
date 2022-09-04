@@ -19,6 +19,7 @@ pub enum GameState {
     Menu,
     Playing,
     SkillTree,
+    GameOver,
 }
 
 #[derive(Component)]
@@ -54,9 +55,11 @@ fn main() {
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierDebugRenderPlugin::default())
         // Our plugins
+        .add_exit_system(GameState::Loading, spawn_camera)
         .add_plugin(PlayerPlugin)
         .add_plugin(EnemyPlugin)
         .add_plugin(SkillTreePlugin)
+        .add_plugin(GameOverPlugin)
         .add_enter_system(GameState::Menu, setup)
         .add_exit_system(GameState::Menu, despawn_with::<MainMenu>)
         .add_system(update_buttons.run_in_state(GameState::Menu))
@@ -92,7 +95,7 @@ pub fn button_pressed<B: Component>(
     false
 }
 
-fn update_buttons(
+pub fn update_buttons(
     mut q: Query<(&Interaction, &mut UiColor), (Changed<Interaction>, With<Button>)>,
 ) {
     for (interaction, mut color) in &mut q {
@@ -249,9 +252,11 @@ fn collide_coins(
     }
 }
 
-fn setup(mut commands: Commands, fonts: Res<Fonts>) {
+fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(Camera2dBundle::default());
+}
 
+fn setup(mut commands: Commands, fonts: Res<Fonts>) {
     commands
         .spawn_bundle(NodeBundle {
             color: UiColor([0.0; 4].into()),
