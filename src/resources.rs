@@ -93,6 +93,12 @@ pub struct ScaleTimer(pub Timer);
 
 pub struct EnemyScale(pub f32);
 
+impl Default for EnemyScale {
+    fn default() -> EnemyScale {
+        EnemyScale(1.0)
+    }
+}
+
 #[derive(Deref, DerefMut)]
 pub struct ShootTimer(pub Timer);
 
@@ -101,3 +107,13 @@ impl Default for ShootTimer {
         ShootTimer(Timer::from_seconds(0.125, true))
     }
 }
+
+#[derive(Deref, DerefMut)]
+pub struct SpawnTimer(Timer);
+
+impl Default for SpawnTimer {
+    fn default() -> SpawnTimer {
+        SpawnTimer(Timer::from_seconds(1.0, true))
+    }
+}
+

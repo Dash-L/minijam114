@@ -5,7 +5,7 @@ use rand::{distributions::Standard, prelude::*};
 
 use crate::{
     components::{AttackTimer, Damage, Enemy, Health, Player},
-    resources::{EnemyScale, ScaleTimer, Sounds, Sprites},
+    resources::{EnemyScale, ScaleTimer, Sounds, Sprites, SpawnTimer},
     GameState,
 };
 
@@ -17,13 +17,10 @@ pub enum EnemySpawnPos {
     Right,
 }
 
-#[derive(Deref, DerefMut)]
-struct SpawnTimer(Timer);
-
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
-            .insert_resource(EnemyScale(1.0))
+        app.init_resource::<SpawnTimer>()
+            .init_resource::<EnemyScale>()
             .insert_resource(ScaleTimer(Timer::from_seconds(1.0, true)))
             .add_system_set(
                 ConditionSet::new()

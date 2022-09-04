@@ -6,7 +6,7 @@ use crate::{
     button_pressed,
     components::{Bullet, Damage, Enemy, Knockback, Pierce, Player, Coin},
     despawn_with,
-    resources::{BulletType, Coins, Fonts, ShootTimer, Spread},
+    resources::{BulletType, Coins, Fonts, ShootTimer, Spread, SpawnTimer, EnemyScale},
     update_buttons, GameState,
 };
 
@@ -137,6 +137,8 @@ fn reset_stats(
     mut pierce: ResMut<Pierce>,
     mut shoot_timer: ResMut<ShootTimer>,
     mut bullet_type: ResMut<BulletType>,
+    mut spawn_timer: ResMut<SpawnTimer>,
+    mut enemy_scale: ResMut<EnemyScale>,
 ) {
     coins.0 = 0;
     *damage = default();
@@ -145,4 +147,7 @@ fn reset_stats(
     *pierce = default();
     *shoot_timer = default();
     *bullet_type = default();
+
+    *spawn_timer = default();
+    *enemy_scale = default();
 }
