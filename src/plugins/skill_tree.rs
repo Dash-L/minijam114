@@ -54,13 +54,13 @@ impl Plugin for SkillTreePlugin {
 }
 
 fn open_skill_tree(mut commands: Commands, mouse: Res<Input<MouseButton>>) {
-    if mouse.just_pressed(MouseButton::Right) {
+    if mouse.any_just_pressed([MouseButton::Right, MouseButton::Middle]) {
         commands.insert_resource(NextState(GameState::SkillTree));
     }
 }
 
 fn close_skill_tree(mut commands: Commands, mouse: Res<Input<MouseButton>>) {
-    if mouse.just_pressed(MouseButton::Right) {
+    if mouse.any_just_pressed([MouseButton::Right, MouseButton::Middle]) {
         commands.insert_resource(NextState(GameState::Playing));
     }
 }

@@ -59,6 +59,7 @@ fn spawn_player(mut commands: Commands, fonts: Res<Fonts>, sprites: Res<Sprites>
             parent
                 .spawn_bundle(SpriteSheetBundle {
                     texture_atlas: sprites.barrel.clone(),
+                    transform: Transform::from_translation(Vec3::Z * 10.0),
                     ..default()
                 })
                 .insert(Barrel)
