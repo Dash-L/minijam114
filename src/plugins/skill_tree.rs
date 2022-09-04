@@ -81,10 +81,7 @@ fn spawn_skill_tree(
             ..default()
         })
         .with_children(|parent| {
-            for images in [
-                sprites.bullet_type.clone(),
-                sprites.spread.clone(),
-            ] {
+            for images in [sprites.bullet_type.clone(), sprites.spread.clone()] {
                 parent
                     .spawn_bundle(NodeBundle {
                         color: UiColor([0.0; 4].into()),
@@ -132,7 +129,10 @@ fn spawn_skill_tree(
                                                 focus_policy: FocusPolicy::Pass,
                                                 ..default()
                                             })
-                                            .insert(Lock(unlocked, if idx == 0 { 20 } else { 50 }));
+                                            .insert(Lock(
+                                                unlocked,
+                                                if idx == 0 { 20 } else { 120 },
+                                            ));
                                     }
                                     parent.spawn_bundle(TextBundle {
                                         style: Style {
@@ -144,7 +144,7 @@ fn spawn_skill_tree(
                                             ..default()
                                         },
                                         text: Text::from_section(
-                                            format!("{}", if idx == 0 { 20 } else { 50 }),
+                                            format!("{}", if idx == 0 { 20 } else { 120 }),
                                             TextStyle {
                                                 color: Color::YELLOW,
                                                 font: fonts.main.clone(),
@@ -197,18 +197,24 @@ fn handle_button_press(
                 if lock.0 && coins.0 >= lock.1 {
                     if icon_image.clone() == sprites.bullet_type[0].clone() {
                         *bullet_type = BulletType::Rocket;
-                        damage.0 = 80.0;
+                        damage.0 = 100.0;
                         knockback.0 = 2000.0;
-                        shoot_timer.set_duration(Duration::from_secs_f32(0.0625));
+                        let duration = shoot_timer.duration();
+                        shoot_timer.set_duration(duration - Duration::from_secs_f32(0.0625));
                     } else if icon_image.clone() == sprites.bullet_type[1].clone() {
                         *bullet_type = BulletType::SawBlade;
-                        damage.0 = 120.0;
+                        damage.0 = 140.0;
                         pierce.0 = 4;
                         knockback.0 = 0.0;
-                        shoot_timer.set_duration(Duration::from_secs_f32(0.03125));
+                        let duration = shoot_timer.duration();
+                        shoot_timer.set_duration(duration - Duration::from_secs_f32(0.03125));
                     } else if icon_image.clone() == sprites.spread[0].clone() {
                         spread.next();
+                        let duration = shoot_timer.duration();
+                        shoot_timer.set_duration(duration - Duration::from_secs_f32(0.01));
                     } else if icon_image.clone() == sprites.spread[1].clone() {
+                        let duration = shoot_timer.duration();
+                        shoot_timer.set_duration(duration - Duration::from_secs_f32(0.015));
                         spread.next();
                     }
 
