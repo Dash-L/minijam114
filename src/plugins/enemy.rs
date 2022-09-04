@@ -4,8 +4,8 @@ use iyes_loopless::prelude::*;
 use rand::{distributions::Standard, prelude::*};
 
 use crate::{
-    components::{AttackTimer, Damage, Enemy, Health, Player},
-    resources::Sprites,
+    components::{AttackTimer, Bullet, Damage, Enemy, Health, ImmobileTimer, Player},
+    resources::{HasSuck, Sprites},
     GameState,
 };
 
@@ -29,6 +29,7 @@ impl Plugin for EnemyPlugin {
                     .with_system(spawn_enemies)
                     .with_system(move_to_player)
                     .with_system(damage_player)
+                    .with_system(handle_freeze)
                     .into(),
             );
     }
@@ -108,7 +109,9 @@ fn spawn_enemies(
 }
 
 fn move_to_player(
-    mut enemies: Query<(&mut Transform, &mut ExternalForce), With<Enemy>>,
+    has_suck: Res<HasSuck>,
+    mut enemies: Query<(&mut Transform, &mut ExternalForce), (With<Enemy>, Without<ImmobileTimer>)>,
+    bullets: Query<&Transform, (With<Bullet>, Without<Enemy>)>,
     player: Query<&Transform, (With<Player>, Without<Enemy>)>,
 ) {
     let player_transform = player.single();
@@ -119,7 +122,47 @@ fn move_to_player(
 
         transform.rotation = Quat::from_rotation_z(Vec2::X.angle_between(dir));
 
-        velocity.force = dir * 1000.0;
+        let bias = if has_suck.0 {
+            let mut res = Vec2::ZERO;
+
+            for bullet_transform in &bullets {
+                let dir = bullet_transform.translation.truncate() - transform.translation.truncate();
+
+                res += dir.normalize() * 150000.0 / dir.length();
+            }
+
+            res
+        } else {
+            Vec2::ZERO
+        };
+
+        velocity.force = dir * 1000.0 + bias;
+    }
+}
+
+fn handle_freeze(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut enemies: Query<
+        (
+            Entity,
+            &mut ImmobileTimer,
+            &mut Sprite,
+            &mut ExternalForce,
+            &mut Velocity,
+        ),
+        With<Enemy>,
+    >,
+) {
+    for (entity, mut immobile_timer, mut sprite, mut force, mut velocity) in &mut enemies {
+        immobile_timer.tick(time.delta());
+        force.force = Vec2::ZERO;
+        velocity.linvel = Vec2::ZERO;
+        sprite.color = Color::rgb(0.2, 1.0, 0.1);
+        if immobile_timer.just_finished() {
+            commands.entity(entity).remove::<ImmobileTimer>();
+            sprite.color = [1.0; 3].into();
+        }
     }
 }
 

@@ -63,12 +63,12 @@ fn main() {
         .add_system(play.run_if(button_pressed::<PlayButton>))
         .add_system(exit.run_if(button_pressed::<ExitButton>))
         // health bar systems (could be a plugin but it's simple enough...)
+        .add_system_to_stage(CoreStage::PreUpdate, remove_at_zero)
         .add_system_set(
             ConditionSet::new()
                 .run_in_state(GameState::Playing)
                 .with_system(update_healthbars)
                 .with_system(insert_healthbars)
-                .with_system(remove_at_zero)
                 .into(),
         )
         .run();

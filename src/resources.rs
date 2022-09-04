@@ -58,7 +58,7 @@ impl Default for Spread {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub enum BulletType {
     #[default]
     Regular = 0,

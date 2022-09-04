@@ -18,6 +18,9 @@ pub struct AnimationTimer(pub Timer);
 #[derive(Component, Deref, DerefMut)]
 pub struct AttackTimer(pub Timer);
 
+#[derive(Component, Deref, DerefMut)]
+pub struct ImmobileTimer(pub Timer);
+
 // this is horribly misnamed but it's basically a request for an animation to stop :)
 #[derive(Component)]
 pub struct Ready(pub bool);

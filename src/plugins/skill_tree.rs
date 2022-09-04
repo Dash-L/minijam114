@@ -1,4 +1,4 @@
-use bevy::{prelude::*, ui::FocusPolicy};
+use bevy::{prelude::*, ui::FocusPolicy, utils::HashSet};
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
@@ -21,6 +21,9 @@ struct Lock(bool, u32);
 #[derive(Component)]
 struct TreeBranch;
 
+#[derive(Component, Default)]
+pub struct Upgrades(HashSet<Handle<Image>>);
+
 #[derive(Component)]
 struct SkillTreeMenu;
 
@@ -31,6 +34,7 @@ pub struct SkillTreePlugin;
 impl Plugin for SkillTreePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TreeEvent>()
+            .init_resource::<Upgrades>()
             .add_system(open_skill_tree.run_in_state(GameState::Playing))
             .add_enter_system(GameState::SkillTree, spawn_skill_tree)
             .add_enter_system(GameState::SkillTree, pause)
@@ -59,7 +63,13 @@ fn close_skill_tree(mut commands: Commands, mouse: Res<Input<MouseButton>>) {
     }
 }
 
-fn spawn_skill_tree(mut commands: Commands, mut coins: ResMut<Coins>, fonts: Res<Fonts>, sprites: Res<Sprites>) {
+fn spawn_skill_tree(
+    mut commands: Commands,
+    mut coins: ResMut<Coins>,
+    upgrades: Res<Upgrades>,
+    fonts: Res<Fonts>,
+    sprites: Res<Sprites>,
+) {
     coins.0 = 100;
     commands
         .spawn_bundle(NodeBundle {
@@ -105,18 +115,26 @@ fn spawn_skill_tree(mut commands: Commands, mut coins: ResMut<Coins>, fonts: Res
                                         focus_policy: FocusPolicy::Pass,
                                         ..default()
                                     });
-                                    parent
-                                        .spawn_bundle(ImageBundle {
-                                            style: Style {
-                                                size: Size::new(Val::Px(30.0), Val::Px(30.0)),
-                                                position_type: PositionType::Absolute,
+                                    if !upgrades.0.contains(&image.clone()) {
+                                        let unlocked = idx == 0
+                                            || (idx == 1
+                                                && upgrades.0.contains(&images[0].clone()));
+                                        parent
+                                            .spawn_bundle(ImageBundle {
+                                                style: Style {
+                                                    size: Size::new(Val::Px(30.0), Val::Px(30.0)),
+                                                    position_type: PositionType::Absolute,
+                                                    ..default()
+                                                },
+                                                image: UiImage(
+                                                    sprites.locks[if unlocked { 1 } else { 0 }]
+                                                        .clone(),
+                                                ),
+                                                focus_policy: FocusPolicy::Pass,
                                                 ..default()
-                                            },
-                                            image: UiImage(sprites.locks[1 - idx].clone()),
-                                            focus_policy: FocusPolicy::Pass,
-                                            ..default()
-                                        })
-                                        .insert(Lock(idx == 0, if idx == 0 { 20 } else { 50 }));
+                                            })
+                                            .insert(Lock(unlocked, if idx == 0 { 20 } else { 50 }));
+                                    }
                                     parent.spawn_bundle(TextBundle {
                                         style: Style {
                                             position_type: PositionType::Absolute,
@@ -147,6 +165,7 @@ fn spawn_skill_tree(mut commands: Commands, mut coins: ResMut<Coins>, fonts: Res
 fn handle_button_press(
     mut commands: Commands,
     sprites: Res<Sprites>,
+    mut upgrades: ResMut<Upgrades>,
     mut coins: ResMut<Coins>,
     mut pierce: ResMut<Pierce>,
     mut damage: ResMut<Damage>,
@@ -196,6 +215,8 @@ fn handle_button_press(
                     } else if icon_image.clone() == sprites.effects[1].clone() {
                         has_suck.0 = true;
                     }
+
+                    upgrades.0.insert(icon_image.clone());
 
                     tree_events.send(TreeEvent(entity));
 

@@ -7,8 +7,8 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     components::{
-        AnimationTimer, Barrel, Bullet, Damage, Enemy, Health, HitEnemies, Knockback, Pierce,
-        Player, Ready,
+        AnimationTimer, Barrel, Bullet, Damage, Enemy, Health, HitEnemies, ImmobileTimer,
+        Knockback, Pierce, Player, Ready,
     },
     resources::{BulletType, Coins, HasIce, HasSuck, MousePosition, Spread, Sprites},
     GameState,
@@ -71,8 +71,10 @@ fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
 fn shoot(
     mut commands: Commands,
     mouse_buttons: Res<Input<MouseButton>>,
+    sprites: Res<Sprites>,
     mouse_pos: Res<MousePosition>,
     knockback: Res<Knockback>,
+    bullet_type: Res<BulletType>,
     spread: Res<Spread>,
     damage: Res<Damage>,
     pierce: Res<Pierce>,
@@ -95,15 +97,22 @@ fn shoot(
             .rotate(mouse_pos.0 - transform.translation.truncate())
             .normalize();
 
+        let scale = match *bullet_type {
+            BulletType::Regular => Vec3::splat(1.5),
+            BulletType::Rocket => Vec3::splat(2.5),
+            BulletType::SawBlade => Vec3::splat(2.0),
+        };
+
         commands
             .spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    color: Color::YELLOW,
-                    custom_size: Some(Vec2::new(1.0, 1.0)),
-                    ..default()
+                texture: match *bullet_type {
+                    BulletType::Regular => sprites.bullet.clone(),
+                    BulletType::Rocket => sprites.rocket.clone(),
+                    BulletType::SawBlade => sprites.saw_blade.clone(),
                 },
                 transform: Transform::from_translation(transform.translation)
-                    .with_scale(Vec3::splat(24.0)),
+                    .with_scale(scale)
+                    .with_rotation(Quat::from_rotation_z(Vec2::X.angle_between(dir))),
                 ..default()
             })
             .insert(Bullet)
@@ -114,7 +123,7 @@ fn shoot(
             .insert(RigidBody::Dynamic)
             .insert(Ccd::enabled())
             .insert(Velocity::linear(dir * 1500.0))
-            .insert(Collider::cuboid(0.5, 0.5))
+            .insert(Collider::cuboid(8.0, 8.0))
             .insert(Sensor)
             .insert(ActiveEvents::COLLISION_EVENTS);
     }
@@ -183,6 +192,7 @@ fn rotate_player(
 
 fn collide_bullets(
     mut commands: Commands,
+    has_ice: Res<HasIce>,
     mut bullets: Query<(Entity, &mut HitEnemies, &mut Pierce, &Damage, &Knockback), With<Bullet>>,
     mut enemies: Query<(Entity, &ExternalForce, &mut Health, &mut ExternalImpulse), With<Enemy>>,
     mut collision_events: EventReader<CollisionEvent>,
@@ -211,6 +221,9 @@ fn collide_bullets(
                 hit_enemies.0.insert(enemy_entity);
                 pierce.0 -= 1;
                 impulse.impulse = force.force.normalize() * -knockback.0;
+                if has_ice.0 {
+                    commands.entity(enemy_entity).insert(ImmobileTimer(Timer::from_seconds(0.25, false)));
+                }
                 if pierce.0 <= 0 {
                     commands.entity(bullet_entity).despawn_recursive();
                 }
