@@ -7,10 +7,12 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     components::{
-        Barrel, Bullet, Damage, Enemy, Health, HitEnemies, ImmobileTimer, Knockback, Pierce,
+        Barrel, Bullet, Coin, Damage, Enemy, Health, HitEnemies, ImmobileTimer, Knockback, Pierce,
         Player, Ready,
     },
-    resources::{BulletType, Coins, HasIce, HasSuck, MousePosition, ShootTimer, Spread, Sprites},
+    resources::{
+        BulletType, Coins, Fonts, HasIce, HasSuck, MousePosition, ShootTimer, Spread, Sprites,
+    },
     GameState,
 };
 
@@ -43,7 +45,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
+fn spawn_player(mut commands: Commands, fonts: Res<Fonts>, sprites: Res<Sprites>) {
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_scale(Vec3::splat(5.))
@@ -65,6 +67,49 @@ fn spawn_player(mut commands: Commands, sprites: Res<Sprites>) {
                 })
                 .insert(Barrel)
                 .insert(Ready(false));
+        });
+
+    commands
+        .spawn_bundle(NodeBundle {
+            color: UiColor([0.0; 4].into()),
+            style: Style {
+                position_type: PositionType::Absolute,
+                size: Size::new(Val::Px(300.0), Val::Px(20.0)),
+                margin: UiRect {
+                    bottom: Val::Auto,
+                    ..default()
+                },
+                position: UiRect {
+                    top: Val::Px(15.0),
+                    left: Val::Px(130.0),
+                    ..default()
+                },
+                justify_content: JustifyContent::FlexStart,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn_bundle(ImageBundle {
+                style: Style {
+                    size: Size::new(Val::Px(20.0), Val::Px(20.0)),
+                    margin: UiRect::all(Val::Px(10.0)),
+                    ..default()
+                },
+                image: UiImage(sprites.coin.clone()),
+                ..default()
+            });
+            parent
+                .spawn_bundle(TextBundle::from_section(
+                    "0",
+                    TextStyle {
+                        color: Color::YELLOW,
+                        font: fonts.main.clone(),
+                        font_size: 30.0,
+                    },
+                ))
+                .insert(Coin);
         });
 }
 
@@ -188,7 +233,16 @@ fn collide_bullets(
     mut commands: Commands,
     has_ice: Res<HasIce>,
     mut bullets: Query<(Entity, &mut HitEnemies, &mut Pierce, &Damage, &Knockback), With<Bullet>>,
-    mut enemies: Query<(Entity, &ExternalForce, &mut Health, &mut ExternalImpulse), With<Enemy>>,
+    mut enemies: Query<
+        (
+            Entity,
+            Option<&ImmobileTimer>,
+            &ExternalForce,
+            &mut Health,
+            &mut ExternalImpulse,
+        ),
+        With<Enemy>,
+    >,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
     let mut handled_entities = HashSet::new();
@@ -209,13 +263,13 @@ fn collide_bullets(
 
             let (_, mut hit_enemies, mut pierce, damage, knockback) =
                 bullets.get_mut(bullet_entity).unwrap();
-            if let Ok((enemy_entity, force, mut health, mut impulse)) =
+            if let Ok((enemy_entity, maybe_immobile, force, mut health, mut impulse)) =
                 enemies.get_mut(*maybe_enemy) && !hit_enemies.0.contains(&enemy_entity)
             {
                 hit_enemies.0.insert(enemy_entity);
                 pierce.0 -= 1;
                 impulse.impulse = force.force.normalize() * -knockback.0;
-                if has_ice.0 {
+                if has_ice.0 && maybe_immobile.is_none() {
                     commands.entity(enemy_entity).insert(ImmobileTimer(Timer::from_seconds(0.25, false)));
                 }
                 if pierce.0 <= 0 {

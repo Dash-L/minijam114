@@ -2,7 +2,7 @@ use bevy::{app::AppExit, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
-use components::{HasHealthBar, Health, HealthBar, Player};
+use components::{Coin, HasHealthBar, Health, HealthBar, Player};
 use iyes_loopless::prelude::*;
 
 mod plugins;
@@ -63,14 +63,14 @@ fn main() {
         .add_system(play.run_if(button_pressed::<PlayButton>))
         .add_system(exit.run_if(button_pressed::<ExitButton>))
         // health bar systems (could be a plugin but it's simple enough...)
-        .add_system_to_stage(CoreStage::PreUpdate, remove_at_zero)
-        .add_system_set(
-            ConditionSet::new()
-                .run_in_state(GameState::Playing)
-                .with_system(update_healthbars)
-                .with_system(insert_healthbars)
-                .into(),
+        .add_system_to_stage(
+            CoreStage::PreUpdate,
+            remove_at_zero.run_in_state(GameState::Playing),
         )
+        .add_system(collide_coins.run_in_state(GameState::Playing))
+        .add_system(update_coin_count.run_not_in_state(GameState::Loading))
+        .add_system(update_healthbars)
+        .add_system(insert_healthbars)
         .run();
 }
 
@@ -182,10 +182,69 @@ fn insert_healthbars(
     }
 }
 
-fn remove_at_zero(mut commands: Commands, entities: Query<(Entity, &Health)>) {
-    for (entity, health) in &entities {
+fn remove_at_zero(
+    mut commands: Commands,
+    sprites: Res<Sprites>,
+    entities: Query<(Entity, &Transform, &Health), Without<Player>>,
+    player: Query<&Transform, With<Player>>,
+) {
+    for (entity, transform, health) in &entities {
         if health.0 <= 0.0 {
+            let player_transform = player.single();
+
+            commands
+                .spawn_bundle(SpriteBundle {
+                    texture: sprites.coin.clone(),
+                    transform: Transform::from_translation(transform.translation)
+                        .with_scale(Vec3::splat(4.0)),
+                    ..default()
+                })
+                .insert(Coin)
+                .insert(RigidBody::KinematicVelocityBased)
+                .insert(Collider::cuboid(4.0, 4.0))
+                .insert(Sensor)
+                .insert(ActiveEvents::COLLISION_EVENTS)
+                .insert(ActiveCollisionTypes::KINEMATIC_STATIC)
+                .insert(Velocity::linear(
+                    (player_transform.translation.truncate() - transform.translation.truncate())
+                        .normalize()
+                        * 500.0,
+                ));
+
             commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+fn update_coin_count(coins: Res<Coins>, mut coins_text: Query<&mut Text, With<Coin>>) {
+    if coins.is_changed() {
+        if let Ok(mut text) = coins_text.get_single_mut() {
+            text.sections[0].value = format!("{}", coins.0);
+        }
+    }
+}
+
+fn collide_coins(
+    mut commands: Commands,
+    mut collision_events: EventReader<CollisionEvent>,
+    mut coins: ResMut<Coins>,
+    player: Query<Entity, With<Player>>,
+    coins_q: Query<Entity, With<Coin>>,
+) {
+    for ev in collision_events.iter() {
+        if let CollisionEvent::Started(e1, e2, _) = ev {
+            let (coin_entity, maybe_player) = if let Ok(_) = coins_q.get(*e1) {
+                (e1, e2)
+            } else if let Ok(_) = coins_q.get(*e2) {
+                (e2, e1)
+            } else {
+                continue;
+            };
+
+            if let Ok(_) = player.get(*maybe_player) {
+                coins.0 += 1;
+                commands.entity(*coin_entity).despawn_recursive();
+            }
         }
     }
 }

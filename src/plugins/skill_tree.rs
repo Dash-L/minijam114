@@ -7,7 +7,7 @@ use iyes_loopless::prelude::*;
 use crate::{
     components::{Damage, Knockback, Pierce, Player},
     despawn_with,
-    resources::{BulletType, Coins, Fonts, HasIce, HasSuck, ShootTimer, Spread, Sprites},
+    resources::{BulletType, Coins, Fonts, ShootTimer, Spread, Sprites},
     GameState,
 };
 
@@ -67,12 +67,10 @@ fn close_skill_tree(mut commands: Commands, mouse: Res<Input<MouseButton>>) {
 
 fn spawn_skill_tree(
     mut commands: Commands,
-    mut coins: ResMut<Coins>,
     upgrades: Res<Upgrades>,
     fonts: Res<Fonts>,
     sprites: Res<Sprites>,
 ) {
-    coins.0 = 200;
     commands
         .spawn_bundle(NodeBundle {
             color: UiColor([0.0; 4].into()),
@@ -86,7 +84,6 @@ fn spawn_skill_tree(
             for images in [
                 sprites.bullet_type.clone(),
                 sprites.spread.clone(),
-                sprites.effects.clone(),
             ] {
                 parent
                     .spawn_bundle(NodeBundle {
@@ -149,7 +146,7 @@ fn spawn_skill_tree(
                                         text: Text::from_section(
                                             format!("{}", if idx == 0 { 20 } else { 50 }),
                                             TextStyle {
-                                                color: Color::ALICE_BLUE,
+                                                color: Color::YELLOW,
                                                 font: fonts.main.clone(),
                                                 font_size: 30.0,
                                             },
@@ -174,8 +171,6 @@ fn handle_button_press(
     mut knockback: ResMut<Knockback>,
     mut spread: ResMut<Spread>,
     mut bullet_type: ResMut<BulletType>,
-    mut has_ice: ResMut<HasIce>,
-    mut has_suck: ResMut<HasSuck>,
     mut tree_events: EventWriter<TreeEvent>,
     mut shoot_timer: ResMut<ShootTimer>,
     buttons: Query<(Entity, &Interaction, &Children), (Changed<Interaction>, With<Button>)>,
@@ -215,10 +210,6 @@ fn handle_button_press(
                         spread.next();
                     } else if icon_image.clone() == sprites.spread[1].clone() {
                         spread.next();
-                    } else if icon_image.clone() == sprites.effects[0].clone() {
-                        has_ice.0 = true;
-                    } else if icon_image.clone() == sprites.effects[1].clone() {
-                        has_suck.0 = true;
                     }
 
                     upgrades.0.insert(icon_image.clone());
