@@ -83,12 +83,6 @@ pub enum BulletType {
 }
 
 #[derive(Default)]
-pub struct HasIce(pub bool);
-
-#[derive(Default)]
-pub struct HasSuck(pub bool);
-
-#[derive(Default)]
 pub struct MousePosition(pub Vec2);
 
 #[derive(Default)]

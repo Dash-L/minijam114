@@ -7,11 +7,11 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     components::{
-        Barrel, Bullet, Coin, Damage, Enemy, Health, HitEnemies, ImmobileTimer, Knockback, Pierce,
+        Barrel, Bullet, Coin, Damage, Enemy, Health, HitEnemies, Knockback, Pierce,
         Player, Ready,
     },
     resources::{
-        BulletType, Coins, Fonts, HasIce, HasSuck, MousePosition, ShootTimer, Spread, Sprites,
+        BulletType, Coins, Fonts, MousePosition, ShootTimer, Spread, Sprites,
     },
     GameState,
 };
@@ -24,8 +24,6 @@ impl Plugin for PlayerPlugin {
             .init_resource::<Coins>()
             .init_resource::<Spread>()
             .init_resource::<BulletType>()
-            .init_resource::<HasIce>()
-            .init_resource::<HasSuck>()
             .insert_resource(Damage(50.0))
             .insert_resource(Knockback(0.0))
             .insert_resource(Pierce(1))
@@ -231,12 +229,10 @@ fn rotate_player(
 
 fn collide_bullets(
     mut commands: Commands,
-    has_ice: Res<HasIce>,
     mut bullets: Query<(Entity, &mut HitEnemies, &mut Pierce, &Damage, &Knockback), With<Bullet>>,
     mut enemies: Query<
         (
             Entity,
-            Option<&ImmobileTimer>,
             &ExternalForce,
             &mut Health,
             &mut ExternalImpulse,
@@ -263,15 +259,12 @@ fn collide_bullets(
 
             let (_, mut hit_enemies, mut pierce, damage, knockback) =
                 bullets.get_mut(bullet_entity).unwrap();
-            if let Ok((enemy_entity, maybe_immobile, force, mut health, mut impulse)) =
+            if let Ok((enemy_entity, force, mut health, mut impulse)) =
                 enemies.get_mut(*maybe_enemy) && !hit_enemies.0.contains(&enemy_entity)
             {
                 hit_enemies.0.insert(enemy_entity);
                 pierce.0 -= 1;
                 impulse.impulse = force.force.normalize() * -knockback.0;
-                if has_ice.0 && maybe_immobile.is_none() {
-                    commands.entity(enemy_entity).insert(ImmobileTimer(Timer::from_seconds(0.25, false)));
-                }
                 if pierce.0 <= 0 {
                     commands.entity(bullet_entity).despawn_recursive();
                 }

@@ -116,7 +116,7 @@ fn update_healthbars(
         for child in children {
             if let Ok((healthbar, mut transform)) = healthbars.get_mut(*child) {
                 if healthbar.0 {
-                    transform.scale.y = health.0 / 2.0 / parent_transform.scale.y;
+                    transform.scale.y = (health.0 / health.1) * 80.0 / parent_transform.scale.y;
                 }
 
                 if maybe_player.is_some() {
@@ -135,9 +135,9 @@ fn update_healthbars(
 fn insert_healthbars(
     mut commands: Commands,
     windows: Res<Windows>,
-    entities: Query<(Entity, &Health, &Transform, Option<&Player>), Without<HasHealthBar>>,
+    entities: Query<(Entity, &Transform, Option<&Player>), (With<Health>, Without<HasHealthBar>)>,
 ) {
-    for (entity, health, transform, maybe_player) in &entities {
+    for (entity, transform, maybe_player) in &entities {
         commands
             .entity(entity)
             .with_children(|parent| {
@@ -160,7 +160,7 @@ fn insert_healthbars(
                             ..default()
                         },
                         transform: Transform::from_translation(healthbar_pos + Vec3::Z * 11.0)
-                            .with_scale(Vec3::new(1.0, health.0 / 2.0, 1.0) / transform.scale),
+                            .with_scale(Vec3::new(1.0, 80.0, 1.0) / transform.scale),
                         ..default()
                     })
                     .insert(HealthBar(true));
@@ -173,7 +173,7 @@ fn insert_healthbars(
                             ..default()
                         },
                         transform: Transform::from_translation(healthbar_pos + Vec3::Z * 10.0)
-                            .with_scale(Vec3::new(1.0, health.1 / 2.0, 1.0) / transform.scale),
+                            .with_scale(Vec3::new(1.0, 80.0, 1.0) / transform.scale),
                         ..default()
                     })
                     .insert(HealthBar(false));
