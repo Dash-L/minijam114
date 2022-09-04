@@ -1,5 +1,6 @@
 use bevy::{app::AppExit, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
+use bevy_pkv::PkvStore;
 use bevy_rapier2d::prelude::*;
 use components::{Coin, HasHealthBar, Health, HealthBar, Player};
 use iyes_loopless::prelude::*;
@@ -260,12 +261,15 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(Camera2dBundle::default());
 }
 
-fn setup(mut commands: Commands, fonts: Res<Fonts>) {
+fn setup(mut commands: Commands, fonts: Res<Fonts>, pkv: Res<PkvStore>) {
+    let high_score = pkv.get::<u32>("high_score").unwrap_or(0);
     commands
         .spawn_bundle(NodeBundle {
             color: UiColor([0.0; 4].into()),
             style: Style {
                 margin: UiRect::all(Val::Auto),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 flex_direction: FlexDirection::ColumnReverse,
                 ..default()
             },
@@ -285,6 +289,15 @@ fn setup(mut commands: Commands, fonts: Res<Fonts>) {
                 font_size: 40.0,
                 color: Color::WHITE,
             };
+
+            parent.spawn_bundle(TextBundle::from_section(
+                format!("High Score: {}", high_score),
+                TextStyle {
+                    color: Color::YELLOW,
+                    font: fonts.main.clone(),
+                    font_size: 40.0,
+                },
+            ));
 
             parent
                 .spawn_bundle(ButtonBundle {
